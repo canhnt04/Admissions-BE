@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/ApiGateway/">
+    <Project Path="src/Crm.ApiGateway/Crm.ApiGateway.csproj" />
+  </Folder>
+  <Folder Name="/Core/">
+    <Project Path="src/Crm.Application/Crm.Application.csproj" />
+    <Project Path="src/Crm.Domain/Crm.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="src/Crm.Infrastructure/Crm.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Services/">
+    <Project Path="src/Auth.API/Auth.API.csproj" />
+    <Project Path="src/Driving.API/Driving.API.csproj" />
+    <Project Path="src/Formal.API/Formal.API.csproj" />
+    <Project Path="src/ShortTerm.API/ShortTerm.API.csproj" />
+  </Folder>
+</Solution>
