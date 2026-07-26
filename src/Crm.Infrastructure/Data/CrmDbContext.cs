@@ -142,13 +142,13 @@ namespace Crm.Infrastructure.Data
                 entity.HasKey(e => e.Id);
 
                 // Giới hạn độ dài chuỗi (string 50) theo thiết kế
-                entity.Property(e => e.UserName).HasMaxLength(50);
-                entity.Property(e => e.PasswordHash).HasMaxLength(50);
-                entity.Property(e => e.FullName).HasMaxLength(50);
-                entity.Property(e => e.IdentificationNumber).HasMaxLength(50);
-                entity.Property(e => e.UserInternalId).HasMaxLength(50);
-                entity.Property(e => e.Mobile).HasMaxLength(50);
-                entity.Property(e => e.ProfilePicUrl).HasMaxLength(50);
+                entity.Property(e => e.UserName).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.PasswordHash).HasMaxLength(256).IsRequired();
+                entity.Property(e => e.FullName).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.IdentificationNumber).HasMaxLength(50).IsRequired(false);
+                entity.Property(e => e.UserInternalId).HasMaxLength(50).IsRequired(false);
+                entity.Property(e => e.Mobile).HasMaxLength(50).IsRequired(false);
+                entity.Property(e => e.ProfilePicUrl).HasMaxLength(500).IsRequired(false);
 
                 // Cấu hình Khóa ngoại: Liên kết với Team
                 // (Giả định TeamId có thể null, nếu team bị xóa thì set user's TeamId về null)

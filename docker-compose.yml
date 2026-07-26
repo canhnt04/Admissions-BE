@@ -28,8 +28,10 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - AppSettings__AccessToken=Your_Secret_Key_For_JWT_Validation_Needs_To_Be_At_Least_64_Characters_Long!
       - ConnectionStrings__CrmDatabase=Server=crm-sqlserver;Database=CrmAdmissions;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;
+      - RabbitMQ__Host=crm-rabbitmq
     depends_on:
       - crm-sqlserver
+      - crm-rabbitmq
 
   formal-api:
     build:

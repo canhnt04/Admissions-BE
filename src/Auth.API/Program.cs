@@ -31,6 +31,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
+app.Services.EnsureCrmDatabaseCreated();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

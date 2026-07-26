@@ -64,5 +64,43 @@ namespace Crm.Infrastructure
 
             return services;
         }
+
+        public static void EnsureCrmDatabaseCreated(this IServiceProvider services)
+        {
+            using var scope = services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<CrmDbContext>();
+            for (int i = 0; i < 10; i++)
+            {
+                try
+                {
+                    context.Database.EnsureCreated();
+                    if (!context.Users.Any())
+                    {
+                        Crm.Application.Auth.PasswordHelper.CreatePasswordHash("Password123!", out byte[] hash, out byte[] salt);
+                        context.Users.Add(new Crm.Domain.Entities.User
+                        {
+                            Id = Guid.NewGuid(),
+                            UserName = "admin@crm.edu.vn",
+                            PasswordHash = Convert.ToBase64String(hash),
+                            PasswordSalt = salt,
+                            FullName = "Admin CRM",
+                            Role = Crm.Domain.Entities.Role.Admin,
+                            Mobile = "0901234567",
+                            IdentificationNumber = "012345678912",
+                            IsActived = true,
+                            UserInternalId = "EMP0001",
+                            ProfilePicUrl = ""
+                        });
+                        context.SaveChanges();
+                    }
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[DB INIT] Retry {i + 1}/10 creating database: {ex.Message}");
+                    System.Threading.Thread.Sleep(3000);
+                }
+            }
+        }
     }
 }
