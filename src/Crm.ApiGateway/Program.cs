@@ -38,7 +38,15 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.RoutePrefix = "swagger";
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "API Gateway");
+        c.SwaggerEndpoint("/docs/auth/swagger/v1/swagger.json", "Auth API");
+        c.SwaggerEndpoint("/docs/formal/swagger/v1/swagger.json", "Formal API");
+        c.SwaggerEndpoint("/docs/shortterm/swagger/v1/swagger.json", "ShortTerm API");
+        c.SwaggerEndpoint("/docs/driving/swagger/v1/swagger.json", "Driving API");
+    });
 }
 
 app.UseHttpsRedirection();
