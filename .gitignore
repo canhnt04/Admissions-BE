@@ -386,10 +386,6 @@ FodyWeavers.xsd
 
 # VS Code files for those working on multiple tools
 .vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
 *.code-workspace
 
 # Local History for Visual Studio Code
@@ -491,3 +487,11 @@ $RECYCLE.BIN/
 # Local configurations
 appsettings.Local.json
 appsettings.*.Local.json
+
+# Ignore environment-specific appsettings
+appsettings.Development.json
+appsettings.Production.json
+
+# Ignore launchSettings (optional, can remove if you want to share profiles)
+**/Properties/launchSettings.json
+
