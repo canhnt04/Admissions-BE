@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  crm-sqlserver:
+  sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: crm-sqlserver
+    container_name: sqlserver
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=Your_Strong_Passw0rd!
@@ -12,9 +12,9 @@ services:
     volumes:
       - sqldata:/var/opt/mssql
 
-  crm-rabbitmq:
+  rabbitmq:
     image: rabbitmq:3-management
-    container_name: crm-rabbitmq
+    container_name: rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -22,60 +22,73 @@ services:
   auth-api:
     build:
       context: .
-      dockerfile: src/Auth.API/Dockerfile
+      dockerfile: src/services/Auth/Auth.API/Dockerfile
     container_name: auth-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - AppSettings__AccessToken=Your_Secret_Key_For_JWT_Validation_Needs_To_Be_At_Least_64_Characters_Long!
-      - ConnectionStrings__CrmDatabase=Server=crm-sqlserver;Database=CrmAdmissions;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;
-      - RabbitMQ__Host=crm-rabbitmq
+      - ConnectionStrings__AuthDatabase=Server=sqlserver;Database=AuthDb;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;
+      - RabbitMQ__Host=rabbitmq
     depends_on:
-      - crm-sqlserver
-      - crm-rabbitmq
+      - sqlserver
+      - rabbitmq
 
   formal-api:
     build:
       context: .
-      dockerfile: src/Formal.API/Dockerfile
+      dockerfile: src/services/Formal/Formal.API/Dockerfile
     container_name: formal-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__CrmDatabase=Server=crm-sqlserver;Database=CrmAdmissions;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;
-      - RabbitMQ__Host=crm-rabbitmq
+      - ConnectionStrings__CrmDatabase=Server=sqlserver;Database=FormalDb;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;
+      - RabbitMQ__Host=rabbitmq
     depends_on:
-      - crm-sqlserver
-      - crm-rabbitmq
+      - sqlserver
+      - rabbitmq
 
   shortterm-api:
     build:
       context: .
-      dockerfile: src/ShortTerm.API/Dockerfile
+      dockerfile: src/services/ShortTerm/ShortTerm.API/Dockerfile
     container_name: shortterm-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__CrmDatabase=Server=crm-sqlserver;Database=CrmAdmissions;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;
-      - RabbitMQ__Host=crm-rabbitmq
+      - ConnectionStrings__CrmDatabase=Server=sqlserver;Database=ShortTermDb;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;
+      - RabbitMQ__Host=rabbitmq
     depends_on:
-      - crm-sqlserver
-      - crm-rabbitmq
+      - sqlserver
+      - rabbitmq
 
   driving-api:
     build:
       context: .
-      dockerfile: src/Driving.API/Dockerfile
+      dockerfile: src/services/Driving/Driving.API/Dockerfile
     container_name: driving-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__CrmDatabase=Server=crm-sqlserver;Database=CrmAdmissions;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;
-      - RabbitMQ__Host=crm-rabbitmq
+      - ConnectionStrings__CrmDatabase=Server=sqlserver;Database=DrivingDb;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;
+      - RabbitMQ__Host=rabbitmq
     depends_on:
-      - crm-sqlserver
-      - crm-rabbitmq
+      - sqlserver
+      - rabbitmq
+
+  leadassignment-api:
+    build:
+      context: .
+      dockerfile: src/services/LeadAssignment/LeadAssignment.API/Dockerfile
+    container_name: leadassignment-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=LeadAssignmentDb;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;
+      - RabbitMQ__Host=rabbitmq
+    depends_on:
+      - sqlserver
+      - rabbitmq
 
   api-gateway:
     build:
       context: .
-      dockerfile: src/Crm.ApiGateway/Dockerfile
+      dockerfile: src/gateway/ApiGateway/Dockerfile
     container_name: api-gateway
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
@@ -84,6 +97,7 @@ services:
       - ReverseProxy__Clusters__formal-cluster__Destinations__formal-api__Address=http://formal-api:8080/
       - ReverseProxy__Clusters__shortterm-cluster__Destinations__shortterm-api__Address=http://shortterm-api:8080/
       - ReverseProxy__Clusters__driving-cluster__Destinations__driving-api__Address=http://driving-api:8080/
+      - ReverseProxy__Clusters__leadassignment-cluster__Destinations__leadassignment-api__Address=http://leadassignment-api:8080/
     ports:
       - "5000:8080"
     depends_on:
@@ -91,6 +105,7 @@ services:
       - formal-api
       - shortterm-api
       - driving-api
+      - leadassignment-api
 
 volumes:
   sqldata:

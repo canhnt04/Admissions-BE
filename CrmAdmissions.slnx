@@ -1,18 +1,44 @@
 <Solution>
-  <Folder Name="/ApiGateway/">
-    <Project Path="src/Crm.ApiGateway/Crm.ApiGateway.csproj" />
+  <Folder Name="/src/" />
+  <Folder Name="/src/gateway/">
+    <Project Path="src/gateway/ApiGateway/ApiGateway.csproj" />
   </Folder>
-  <Folder Name="/Core/">
-    <Project Path="src/Crm.Application/Crm.Application.csproj" />
-    <Project Path="src/Crm.Domain/Crm.Domain.csproj" />
+  <Folder Name="/src/services/" />
+  <Folder Name="/src/services/Auth/">
+    <Project Path="src/services/Auth/Auth.API/Auth.API.csproj" />
+    <Project Path="src/services/Auth/Auth.Application/Auth.Application.csproj" />
+    <Project Path="src/services/Auth/Auth.Domain/Auth.Domain.csproj" />
+    <Project Path="src/services/Auth/Auth.Infrastructure/Auth.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/Infrastructure/">
-    <Project Path="src/Crm.Infrastructure/Crm.Infrastructure.csproj" />
+  <Folder Name="/src/services/Driving/">
+    <Project Path="src/services/Driving/Driving.API/Driving.API.csproj" />
+    <Project Path="src/services/Driving/Driving.Application/Driving.Application.csproj" />
+    <Project Path="src/services/Driving/Driving.Domain/Driving.Domain.csproj" />
+    <Project Path="src/services/Driving/Driving.Infrastructure/Driving.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/Services/">
-    <Project Path="src/Auth.API/Auth.API.csproj" />
-    <Project Path="src/Driving.API/Driving.API.csproj" />
-    <Project Path="src/Formal.API/Formal.API.csproj" />
-    <Project Path="src/ShortTerm.API/ShortTerm.API.csproj" />
+  <Folder Name="/src/services/Formal/">
+    <Project Path="src/services/Formal/Formal.API/Formal.API.csproj" />
+    <Project Path="src/services/Formal/Formal.Application/Formal.Application.csproj" />
+    <Project Path="src/services/Formal/Formal.Domain/Formal.Domain.csproj" />
+    <Project Path="src/services/Formal/Formal.Infrastructure/Formal.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/services/ShortTerm/">
+    <Project Path="src/services/ShortTerm/ShortTerm.API/ShortTerm.API.csproj" />
+    <Project Path="src/services/ShortTerm/ShortTerm.Application/ShortTerm.Application.csproj" />
+    <Project Path="src/services/ShortTerm/ShortTerm.Domain/ShortTerm.Domain.csproj" />
+    <Project Path="src/services/ShortTerm/ShortTerm.Infrastructure/ShortTerm.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/shared/">
+    <Project Path="src/shared/Shared.Common/Shared.Common.csproj" />
+    <Project Path="src/shared/Shared.Authentication/Shared.Authentication.csproj" />
+    <Project Path="src/shared/Shared.Messaging/Shared.Messaging.csproj" />
+    <Project Path="src/shared/Shared.Contracts/Shared.Contracts.csproj" />
+    <Project Path="src/shared/Shared.Logging/Shared.Logging.csproj" />
+  </Folder>
+  <Folder Name="/src/services/LeadAssignment/">
+    <Project Path="src/services/LeadAssignment/LeadAssignment.API/LeadAssignment.API.csproj" />
+    <Project Path="src/services/LeadAssignment/LeadAssignment.Application/LeadAssignment.Application.csproj" />
+    <Project Path="src/services/LeadAssignment/LeadAssignment.Domain/LeadAssignment.Domain.csproj" />
+    <Project Path="src/services/LeadAssignment/LeadAssignment.Infrastructure/LeadAssignment.Infrastructure.csproj" />
   </Folder>
 </Solution>

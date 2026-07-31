@@ -1,6 +1,0 @@
-@Formal.API_HostAddress = http://localhost:5022
-
-GET {{Formal.API_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

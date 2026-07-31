@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.6">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Driving.Infrastructure\Driving.Infrastructure.csproj" />
+    <ProjectReference Include="..\Driving.Application\Driving.Application.csproj" />
+    <ProjectReference Include="..\Driving.Domain\Driving.Domain.csproj" />
+    <ProjectReference Include="..\..\..\shared\Shared.Authentication\Shared.Authentication.csproj" />
+    <ProjectReference Include="..\..\..\shared\Shared.Logging\Shared.Logging.csproj" />
+    <ProjectReference Include="..\..\..\shared\Shared.Common\Shared.Common.csproj" />
+  </ItemGroup>
+
+</Project>
