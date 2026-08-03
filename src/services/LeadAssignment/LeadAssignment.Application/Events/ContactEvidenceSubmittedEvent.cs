@@ -1,3 +1,6 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 namespace LeadAssignment.Application.Events
 {
     /// <summary>
@@ -9,7 +12,9 @@ namespace LeadAssignment.Application.Events
         public Guid ContactEvidenceId { get; set; }
         public Guid CustomerId { get; set; }
         public Guid ConsultantId { get; set; }
-        public string EvidenceType { get; set; }
+        public int? LeadStatus { get; set; }
+        public int? FollowStatus { get; set; }
         public DateTime SubmittedAt { get; set; }
     }
 }
+

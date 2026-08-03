@@ -1,3 +1,6 @@
+using Formal.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using Formal.Domain.Entities;
 
 namespace Formal.Application.Events

@@ -1,3 +1,6 @@
+using Formal.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -46,14 +46,15 @@ namespace LeadAssignment.Infrastructure.Migrations
                     b.Property<int>("OrderIndex")
                         .HasColumnType("int");
 
-                    b.Property<int>("TrainingSystem")
+                    b.Property<int?>("TrainingSystem")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("TrainingSystem", "ConsultantId")
                         .IsUnique()
-                        .HasDatabaseName("IX_AssignmentQueue_TrainingSystem_Consultant_Unique");
+                        .HasDatabaseName("IX_AssignmentQueue_TrainingSystem_Consultant_Unique")
+                        .HasFilter("[TrainingSystem] IS NOT NULL");
 
                     b.HasIndex("TrainingSystem", "IsActive")
                         .HasDatabaseName("IX_AssignmentQueue_TrainingSystem_Active");
@@ -122,13 +123,10 @@ namespace LeadAssignment.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("NewStatusValue")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("FollowStatus")
+                        .HasColumnType("int");
 
-                    b.Property<string>("OldStatusValue")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Type")
+                    b.Property<int?>("LeadStatus")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -237,7 +235,7 @@ namespace LeadAssignment.Infrastructure.Migrations
                     b.Property<Guid?>("ReassignedToId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("TrainingSystem")
+                    b.Property<int?>("TrainingSystem")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -306,42 +304,6 @@ namespace LeadAssignment.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("SystemConfigs");
-                });
-
-            modelBuilder.Entity("LeadAssignment.Domain.Entities.UserReplica", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("LastSyncedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Mobile")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("int");
-
-                    b.Property<Guid?>("TeamId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("UserReplicas");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.InboxState", b =>

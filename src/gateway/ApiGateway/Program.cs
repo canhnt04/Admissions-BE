@@ -16,6 +16,32 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuer = false,
             ValidateAudience = false
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+                if (!string.IsNullOrEmpty(authHeader) && authHeader.Contains("\"accessToken\""))
+                {
+                    try
+                    {
+                        var jsonPart = authHeader.StartsWith("Bearer ", System.StringComparison.OrdinalIgnoreCase) 
+                            ? authHeader.Substring(7).Trim() 
+                            : authHeader.Trim();
+                        if (jsonPart.StartsWith("{") && jsonPart.EndsWith("}"))
+                        {
+                            using var doc = System.Text.Json.JsonDocument.Parse(jsonPart);
+                            if (doc.RootElement.TryGetProperty("accessToken", out var tokenElement))
+                            {
+                                context.Token = tokenElement.GetString();
+                            }
+                        }
+                    }
+                    catch { }
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddAuthorization(options =>
 {
@@ -45,10 +71,11 @@ if (app.Environment.IsDevelopment())
         c.SwaggerEndpoint("/api/shortterm/swagger/v1/swagger.json", "ShortTerm API");
         c.SwaggerEndpoint("/api/driving/swagger/v1/swagger.json", "Driving API");
         c.SwaggerEndpoint("/api/assignment/swagger/v1/swagger.json", "LeadAssignment API");
+        c.SwaggerEndpoint("/api/customers/swagger/v1/swagger.json", "Customer API");
     });
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 

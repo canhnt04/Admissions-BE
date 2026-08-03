@@ -1,3 +1,6 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using LeadAssignment.Application.Common.Interfaces;
 
 using MediatR;
@@ -13,10 +16,12 @@ namespace LeadAssignment.Application.Assignments.Queries.GetCustomerAssignmentHi
     public class GetCustomerAssignmentHistoryQueryHandler : IRequestHandler<GetCustomerAssignmentHistoryQuery, Result<List<CustomerAssignmentHistoryDto>>>
     {
         private readonly IAssignmentDbContext _context;
+        private readonly IUserGrpcClient _userGrpcClient;
 
-        public GetCustomerAssignmentHistoryQueryHandler(IAssignmentDbContext context)
+        public GetCustomerAssignmentHistoryQueryHandler(IAssignmentDbContext context, IUserGrpcClient userGrpcClient)
         {
             _context = context;
+            _userGrpcClient = userGrpcClient;
         }
 
         public async Task<Result<List<CustomerAssignmentHistoryDto>>> Handle(GetCustomerAssignmentHistoryQuery request, CancellationToken cancellationToken)
@@ -26,24 +31,27 @@ namespace LeadAssignment.Application.Assignments.Queries.GetCustomerAssignmentHi
                 .OrderByDescending(x => x.AssignmentDate)
                 .ToListAsync(cancellationToken);
 
-            var assigneeIds = histories.Select(x => x.AssigneeId).Distinct().ToList();
-            var assignees = await _context.UserReplicas
-                .Where(x => assigneeIds.Contains(x.Id))
-                .ToDictionaryAsync(x => x.Id, x => x.FullName, cancellationToken);
+            // Batch-resolve assignee names và assigned-by names qua gRPC
+            var userIds = histories
+                .SelectMany(h => new[] { h.AssigneeId, h.AssignedById })
+                .Distinct()
+                .Where(id => id != Guid.Empty)
+                .ToList();
+
+            var userNames = await _userGrpcClient.GetUserNamesAsync(userIds, cancellationToken);
 
             var result = histories.Select(h => new CustomerAssignmentHistoryDto
             {
                 Id = h.Id,
                 AssigneeId = h.AssigneeId,
-                AssigneeName = assignees.ContainsKey(h.AssigneeId) ? assignees[h.AssigneeId] : "N/A",
+                AssigneeName = userNames.GetValueOrDefault(h.AssigneeId, "Unknown"),
                 AssignedById = h.AssignedById,
                 AssignmentDate = h.AssignmentDate,
                 Reason = h.Reason.ToString(),
-                Note = h.Note
+                Note = h.Note ?? string.Empty
             }).ToList();
 
             return Result<List<CustomerAssignmentHistoryDto>>.Success(result);
         }
     }
 }
-

@@ -1,3 +1,6 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using LeadAssignment.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Threading;
@@ -7,7 +10,6 @@ namespace LeadAssignment.Application.Common.Interfaces
 {
     public interface IAssignmentDbContext
     {
-        DbSet<UserReplica> UserReplicas { get; set; }
         DbSet<AuditLog> AuditLogs { get; set; }
         DbSet<CustomTag> CustomTags { get; set; }
         DbSet<ContactEvidence> ContactEvidences { get; set; }
@@ -20,3 +22,4 @@ namespace LeadAssignment.Application.Common.Interfaces
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }
+

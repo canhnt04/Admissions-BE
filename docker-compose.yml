@@ -85,6 +85,19 @@ services:
       - sqlserver
       - rabbitmq
 
+  customer-api:
+    build:
+      context: .
+      dockerfile: src/services/Customer/Customer.API/Dockerfile
+    container_name: customer-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__CustomerDatabase=Server=sqlserver;Database=CustomerDb;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;
+      - RabbitMQ__Host=rabbitmq
+    depends_on:
+      - sqlserver
+      - rabbitmq
+
   api-gateway:
     build:
       context: .
@@ -98,6 +111,7 @@ services:
       - ReverseProxy__Clusters__shortterm-cluster__Destinations__shortterm-api__Address=http://shortterm-api:8080/
       - ReverseProxy__Clusters__driving-cluster__Destinations__driving-api__Address=http://driving-api:8080/
       - ReverseProxy__Clusters__leadassignment-cluster__Destinations__leadassignment-api__Address=http://leadassignment-api:8080/
+      - ReverseProxy__Clusters__customer-cluster__Destinations__customer-api__Address=http://customer-api:8080/
     ports:
       - "5000:8080"
     depends_on:
@@ -106,6 +120,7 @@ services:
       - shortterm-api
       - driving-api
       - leadassignment-api
+      - customer-api
 
 volumes:
   sqldata:

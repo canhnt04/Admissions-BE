@@ -1,82 +1,57 @@
-# CRM Admissions Backend
+# CrmAdmissions - Hệ Thống CRM Tuyển Sinh
 
-Đây là dự án Backend cho hệ thống CRM Tuyển sinh (Admissions), được xây dựng theo kiến trúc **Microservices** và **Clean Architecture**.
+Dự án CRM Tuyển sinh được xây dựng dựa trên kiến trúc **Microservices** & **Clean Architecture**, phục vụ cho 3 mảng nghiệp vụ chính: **Đào tạo Chính Quy**, **Đào tạo Ngắn Hạn**, và **Đào tạo Lái Xe**.
 
-## 🏗 Cấu trúc dự án (Architecture)
+## 🏗 Kiến trúc Hệ thống (Architecture)
+Hệ thống được chia nhỏ thành các domain services độc lập để dễ dàng maintain và scale:
 
-Dự án được tổ chức theo cấu trúc thư mục tiêu chuẩn cho hệ thống Microservices:
+- **Customer Service** (`Customer.API`): Quản lý dữ liệu gốc của khách hàng (Thông tin liên hệ, nguồn, ...). Phân tách rõ ràng dữ liệu domain chung và domain cụ thể của từng nhánh.
+- **Formal Service** (`Formal.API`): Xử lý nghiệp vụ riêng cho nhánh Đào tạo Chính quy.
+- **ShortTerm Service** (`ShortTerm.API`): Xử lý nghiệp vụ riêng cho nhánh Đào tạo Ngắn hạn.
+- **Driving Service** (`Driving.API`): Xử lý nghiệp vụ riêng cho nhánh Đào tạo Lái xe.
+- **Lead Assignment Service** (`LeadAssignment.API`): Xử lý logic chia khách (lead) tự động cho nhân viên tư vấn dựa trên SLA, Queue, và thuật toán Round-Robin. Theo dõi và thu hồi lead nếu nhân viên không liên hệ đúng hạn.
+- **Auth Service** (`Auth.API`): Identity Provider, quản lý xác thực (Authentication), phân quyền (Role-based JWT) và quản lý User.
 
-`	ext
-src/
-├── gateway/
-│   └── ApiGateway/          # Điểm vào duy nhất (entry point) định tuyến request đến các services
-├── services/
-│   ├── Auth/                # Dịch vụ xác thực và phân quyền (Authentication & Authorization)
-│   ├── Driving/             # Dịch vụ quản lý tuyển sinh đào tạo lái xe
-│   ├── Formal/              # Dịch vụ quản lý tuyển sinh hệ chính quy (Đại học, Cao đẳng...)
-│   ├── LeadAssignment/      # Dịch vụ quản lý phân bổ khách hàng (Assignment Queue & SLA)
-│   └── ShortTerm/           # Dịch vụ quản lý tuyển sinh hệ ngắn hạn
-└── shared/                  # Các thành phần, core logic, và hạ tầng dùng chung cho toàn bộ dự án
-    ├── Shared.Authentication/ # Xử lý JWT, Token Generation, cấu hình Authentication chung & ICurrentUserService
-    ├── Shared.Common/         # Chứa Interface, Exception handling, Result wrapper dùng chung
-    ├── Shared.Contracts/      # Định nghĩa các Events (Message Contracts) dùng cho RabbitMQ
-    ├── Shared.Logging/        # Middleware & Utility cho Logging hệ thống
-    └── Shared.Messaging/      # Cấu hình MassTransit (Event-Driven) & Outbox Pattern chung
-`
+## 🚀 Các Công nghệ Sử dụng
+- **.NET 8** (ASP.NET Core Web API)
+- **Entity Framework Core 8** (SQL Server)
+- **MassTransit & RabbitMQ**: Giao tiếp bất đồng bộ (Event-Driven Architecture) bằng Publish/Subscribe. Áp dụng mẫu **Transactional Outbox Pattern** để đảm bảo tính toàn vẹn dữ liệu khi gửi event.
+- **gRPC**: Giao tiếp đồng bộ tốc độ cao giữa các services (ví dụ: Fetch thông tin User/Role từ Auth Service).
+- **Docker & Docker Compose**: Đóng gói các infrastructure dependencies (SQL Server, RabbitMQ, Seq,...).
 
-Mỗi dịch vụ (service) trong thư mục src/services/ đều được triển khai độc lập theo mô hình **Clean Architecture**, bao gồm các lớp:
-- ***.API**: Lớp giao tiếp với bên ngoài (Controllers, cấu hình Dependency Injection, Middleware).
-- ***.Application**: Chứa logic ứng dụng, Use Cases, CQRS (Commands/Queries bằng MediatR), DTOs, và Interfaces.
-- ***.Domain**: Chứa các Entities cốt lõi, Value Objects, Domain Events, và Domain Exceptions.
-- ***.Infrastructure**: Tương tác với cơ sở dữ liệu (Entity Framework Core), gửi sự kiện thông qua Message Broker, triển khai các Outbox Entities.
+## ⚙️ Tính năng cốt lõi đã hoàn thiện
+1. **Quản lý Lead (Khách hàng)**: 
+   - Seed dữ liệu và tạo lead mới từ `Customer.API`.
+   - Publish sự kiện `CustomerCreatedEvent` đến các service nghiệp vụ và `LeadAssignment`.
+2. **Giao Lead Tự động (Auto Assignment)**:
+   - Nhân viên tư vấn có thể `Check-in` / `Check-out` để nhận lead.
+   - Lead mới được tự động gán cho nhân viên (Round-Robin).
+   - Có hệ thống Worker (SlaMonitorWorker) chạy ngầm kiểm tra hạn chót xử lý lead. Nếu quá hạn (SLA violation), tự động thu hồi và gán cho người khác.
+   - Đòi hỏi bằng chứng liên hệ (`ContactEvidence`).
+3. **Đồng bộ User**:
+   - Sao chép (Replica) dữ liệu User/Role từ `Auth.API` sang các service khác (như `LeadAssignment.API`) thông qua **gRPC** để phục vụ truy vấn nội bộ mà không cần call chéo liên tục.
 
-## 🚀 Công nghệ sử dụng
+## 🏃 Hướng dẫn chạy môi trường Local
 
-- **Framework**: .NET 8 (C#)
-- **Database**: Microsoft SQL Server (Mỗi Microservice có Database/DbContext riêng biệt)
-- **Message Broker**: RabbitMQ tích hợp qua MassTransit (Có áp dụng Outbox Pattern để bảo đảm an toàn dữ liệu)
-- **Gateway**: YARP / Ocelot
-- **Containerization**: Docker & Docker Compose
-- **Architecture**: Microservices, Clean Architecture, CQRS (MediatR), Domain-Driven Design (DDD) principles.
-- **Authentication**: JWT Bearer Token (Thiết kế tập trung ICurrentUserService).
-
----
-
-## 🛠 Hướng dẫn chạy dự án (How to run)
-
-### Yêu cầu hệ thống (Prerequisites)
-1. Cài đặt **Docker Desktop** (bắt buộc để chạy nhanh qua docker-compose).
-2. Cài đặt **.NET 8 SDK**.
-3. IDE: Visual Studio 2022, JetBrains Rider, hoặc VS Code.
-
-### Cách 1: Chạy toàn bộ hệ thống bằng Docker Compose (Khuyên dùng)
-
-Đây là cách nhanh nhất để khởi chạy toàn bộ database, message broker và các services.
-
-1. Mở Terminal / PowerShell / Command Prompt tại thư mục gốc của dự án (nơi chứa file docker-compose.yml).
-2. Chạy lệnh sau:
+1. Start Infrastructure (SQL Server, RabbitMQ) bằng Docker:
    ```bash
-   docker-compose up -d --build
-   ```
-3. Sau khi Docker pull image và build thành công, các dịch vụ sẽ hoạt động ở các port sau:
-   - **API Gateway**: http://localhost:5000 (Gửi toàn bộ request API qua đây)
-   - **SQL Server**: localhost:1433 (SA Password: Your_Strong_Passw0rd!)
-   - **RabbitMQ Management UI**: http://localhost:15672 (guest/guest)
-4. Để dừng hệ thống:
-   ```bash
-   docker-compose down
+   docker-compose up -d
    ```
 
-### Cách 2: Chạy qua Visual Studio / Rider (Dành cho Development)
-
-Nếu bạn muốn debug trực tiếp các services bằng IDE:
-
-1. Khởi chạy các dịch vụ hạ tầng (Database & Message Broker) bằng lệnh:
+2. Cập nhật Database (EF Migrations) - Chạy trên từng Service:
    ```bash
-   docker-compose up -d crm-sqlserver crm-rabbitmq
+   dotnet ef database update --project src/services/Auth/Auth.Infrastructure --startup-project src/services/Auth/Auth.API
+   dotnet ef database update --project src/services/Customer/Customer.Infrastructure --startup-project src/services/Customer/Customer.API
+   dotnet ef database update --project src/services/LeadAssignment/LeadAssignment.Infrastructure --startup-project src/services/LeadAssignment/LeadAssignment.API
    ```
-2. Mở file solution CrmAdmissions.slnx bằng Visual Studio 2022 hoặc JetBrains Rider.
-3. Thiết lập **Multiple Startup Projects**:
-   - Chuột phải vào Solution -> chọn Configure Startup Projects...
-   - Chọn Multiple startup projects và set **Start** cho các project API và Gateway, ví dụ: Auth.API, Formal.API, ShortTerm.API, Driving.API, LeadAssignment.API và ApiGateway.
-4. Nhấn F5 hoặc nút Run để khởi chạy các dịch vụ. Toàn bộ request sẽ đi qua cổng của ApiGateway.
+
+3. Chạy các API Services:
+   Cần chạy ít nhất các service sau để test luồng:
+   - `Auth.API` (Port 5001 - gRPC Port 50011)
+   - `Customer.API` (Port 5006)
+   - `LeadAssignment.API` (Port 5005)
+
+## 🗺 Road Map Tiếp theo
+- Tích hợp gửi thông báo (Email / Zalo) khi gán lead thành công hoặc khi quá hạn SLA.
+- Xử lý nghiệp vụ cấu hình tài khoản quản lý nhận lead nếu bị violation 3 lần.
+- Xây dựng module Báo cáo (Dashboard) và Data Pipeline cho Insight Khách hàng bằng AI.

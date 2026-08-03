@@ -1,3 +1,6 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using LeadAssignment.Application.Common.Interfaces;
 using LeadAssignment.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +12,6 @@ namespace LeadAssignment.Infrastructure.Data
     {
         public AssignmentDbContext(DbContextOptions<AssignmentDbContext> options) : base(options) { }
 
-        public DbSet<UserReplica> UserReplicas { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<CustomTag> CustomTags { get; set; }
         public DbSet<ContactEvidence> ContactEvidences { get; set; }
@@ -27,17 +29,12 @@ namespace LeadAssignment.Infrastructure.Data
             modelBuilder.AddOutboxMessageEntity();
             modelBuilder.AddOutboxStateEntity();
 
-            modelBuilder.Entity<UserReplica>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.FullName).HasMaxLength(100);
-                entity.Property(e => e.Mobile).HasMaxLength(50);
-            });
+
 
             modelBuilder.Entity<CustomerCareStatus>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                });
+            });
 
             modelBuilder.Entity<CustomerAssignmentHistory>(entity =>
             {
@@ -91,4 +88,5 @@ namespace LeadAssignment.Infrastructure.Data
         }
     }
 }
+
 

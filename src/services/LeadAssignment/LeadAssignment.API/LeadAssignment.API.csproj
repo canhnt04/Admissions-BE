@@ -4,6 +4,8 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);1591</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -22,6 +24,7 @@
 	  <ProjectReference Include="..\..\..\shared\Shared.Authentication\Shared.Authentication.csproj" />
 	  <ProjectReference Include="..\..\..\shared\Shared.Logging\Shared.Logging.csproj" />
 	  <ProjectReference Include="..\..\..\shared\Shared.Common\Shared.Common.csproj" />
+	  <ProjectReference Include="..\..\..\shared\Shared.Protos\Shared.Protos.csproj" />
 	</ItemGroup>
 
 </Project>

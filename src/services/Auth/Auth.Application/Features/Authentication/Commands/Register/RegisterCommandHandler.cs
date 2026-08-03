@@ -1,27 +1,32 @@
 using Auth.Application.Common.Helpers;
-using Auth.Domain.Entities;
-using Auth.Domain.Errors;
 using Auth.Application.Common.Interfaces;
+using Auth.Domain.Entities;
+using Auth.Domain.Enums;
+using Auth.Domain.Errors;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Shared.Common.Exceptions;
 
 namespace Auth.Application.Features.Authentication.Commands.Register;
 
 public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterResponse>
 {
+    private readonly IUserRepository _userRepository;
     private readonly IAuthDbContext _context;
     private readonly IUserEventPublisher _eventPublisher;
 
-    public RegisterCommandHandler(IAuthDbContext context, IUserEventPublisher eventPublisher)
+    public RegisterCommandHandler(
+        IUserRepository userRepository,
+        IAuthDbContext context,
+        IUserEventPublisher eventPublisher)
     {
+        _userRepository = userRepository;
         _context = context;
         _eventPublisher = eventPublisher;
     }
 
     public async Task<RegisterResponse> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
-        if (await _context.Users.AnyAsync(u => u.UserName == request.UserName, cancellationToken))
+        if (await _userRepository.IsUserNameTakenAsync(request.UserName, cancellationToken))
             throw new ConflictException(AuthErrors.DuplicateUsername);
 
         PasswordHelper.CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
@@ -35,14 +40,13 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
             FullName = request.FullName,
             Mobile = request.Mobile,
             IdentificationNumber = request.IdentificationNumber,
-            Role = Role.User, 
-            ProfilePicUrl = "", 
+            Role = Role.User,
+            ProfilePicUrl = "",
             IsActived = true,
             UserInternalId = $"EMP{new Random().Next(1000, 9999)}"
         };
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync(cancellationToken);
+        _userRepository.Add(user);
 
         // Publish UserSyncEvent — các CRM service sẽ tạo UserReplica tương ứng
         await _eventPublisher.PublishUserSyncAsync(
@@ -55,9 +59,11 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
             user.IsActived,
             cancellationToken);
 
+        await _context.SaveChangesAsync(cancellationToken);
+
         return new RegisterResponse
         {
-            Message = "Registration successful"
+            Message = "Đăng ký tài khoản thành công."
         };
     }
 }

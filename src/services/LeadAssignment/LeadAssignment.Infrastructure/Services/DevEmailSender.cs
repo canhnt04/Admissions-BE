@@ -1,3 +1,6 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using LeadAssignment.Application.Common.Interfaces;
 using LeadAssignment.Application.Events;
 using LeadAssignment.Infrastructure.Data;

@@ -10,6 +10,12 @@
     <Project Path="src/services/Auth/Auth.Domain/Auth.Domain.csproj" />
     <Project Path="src/services/Auth/Auth.Infrastructure/Auth.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/services/Customer/">
+    <Project Path="src/services/Customer/Customer.API/Customer.API.csproj" />
+    <Project Path="src/services/Customer/Customer.Application/Customer.Application.csproj" />
+    <Project Path="src/services/Customer/Customer.Domain/Customer.Domain.csproj" />
+    <Project Path="src/services/Customer/Customer.Infrastructure/Customer.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/services/Driving/">
     <Project Path="src/services/Driving/Driving.API/Driving.API.csproj" />
     <Project Path="src/services/Driving/Driving.Application/Driving.Application.csproj" />
@@ -34,6 +40,7 @@
     <Project Path="src/shared/Shared.Messaging/Shared.Messaging.csproj" />
     <Project Path="src/shared/Shared.Contracts/Shared.Contracts.csproj" />
     <Project Path="src/shared/Shared.Logging/Shared.Logging.csproj" />
+    <Project Path="src/shared/Shared.Protos/Shared.Protos.csproj" />
   </Folder>
   <Folder Name="/src/services/LeadAssignment/">
     <Project Path="src/services/LeadAssignment/LeadAssignment.API/LeadAssignment.API.csproj" />

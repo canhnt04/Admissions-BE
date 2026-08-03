@@ -10,7 +10,7 @@ public static class DependencyInjection
     {
         services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
         services.AddSingleton<IEventBus, RabbitMqEventBus>();
-        
+
         return services;
     }
 }

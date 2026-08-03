@@ -1,8 +1,7 @@
+using Formal.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Formal.Domain.Entities
 {
@@ -10,20 +9,19 @@ namespace Formal.Domain.Entities
     {
         public Guid Id { get; set; }
 
-        // Khóa ngoại liên kết với Customer
+        // FK -> Customer
         public Guid CustomerId { get; set; }
         public virtual Customer Customer { get; set; }
 
-        // NV được giao — chỉ lưu ID
+        // NV duoc giao cham soc
         public Guid? AssigneeId { get; set; }
-
         /// <summary>
-        /// Trạng thái lead (Hot/Warm/Cold/Converted)
+        /// Trang thai lead (Hot/Warm/Cold/Converted)
         /// </summary>
         public LeadStatus? Status { get; set; }
 
         /// <summary>
-        /// Trạng thái follow (Contacted/Callback/...)
+        /// Trang thai follow (Contacted/Callback/...)
         /// </summary>
         public FollowStatus? FollowStatus { get; set; }
 
@@ -33,3 +31,4 @@ namespace Formal.Domain.Entities
         public string Note { get; set; }
     }
 }
+

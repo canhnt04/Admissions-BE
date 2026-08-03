@@ -1,3 +1,6 @@
+using ShortTerm.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,8 +35,7 @@ namespace ShortTerm.Domain.Entities
         // User được giao (lead) — chỉ lưu ID, không FK chéo sang AuthDb
         public Guid? Assignee { get; set; }
 
-        // Navigation → UserReplica (bản sao nội bộ, đồng bộ qua RabbitMQ)
-        public virtual UserReplica? AssigneeUser { get; set; }
+
 
         public DateTime? BirthDate { get; set; }
         public string Gender { get; set; }
@@ -96,3 +98,4 @@ namespace ShortTerm.Domain.Entities
         public int ReassignmentCount { get; set; }
     }
 }
+

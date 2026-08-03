@@ -1,3 +1,6 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using System;
 
 namespace LeadAssignment.Domain.Entities
@@ -12,9 +15,7 @@ namespace LeadAssignment.Domain.Entities
         public Guid Id { get; set; }
 
         /// <summary>
-        /// Nhánh đào tạo mà queue này phục vụ
-        /// </summary>
-        public TrainingSystem TrainingSystem { get; set; }
+        public TrainingSystem? TrainingSystem { get; set; }
 
         // NV tư vấn — chỉ lưu ID
         public Guid ConsultantId { get; set; }
@@ -45,3 +46,4 @@ namespace LeadAssignment.Domain.Entities
         public DateTime? LastAssignedAt { get; set; }
     }
 }
+

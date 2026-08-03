@@ -1,3 +1,5 @@
+using Auth.Domain.Enums;
+using Shared.Contracts.Enums;
 using Auth.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Auth.Application.Common.Interfaces;

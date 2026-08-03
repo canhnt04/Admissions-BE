@@ -1,7 +1,10 @@
+using ShortTerm.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using ShortTerm.Application.Common.Behaviors;
 using ShortTerm.Application.Common.Interfaces;
-using ShortTerm.Infrastructure.Consumers;
 using ShortTerm.Infrastructure.Data;
+using ShortTerm.Infrastructure.Repositories;
 using FluentValidation;
 using MassTransit;
 using MediatR;
@@ -21,10 +24,11 @@ namespace ShortTerm.Infrastructure
                     configuration.GetConnectionString("CrmDatabase"),
                     b => b.MigrationsAssembly(typeof(ShortTermDbContext).Assembly.FullName)));
 
-            // Register as base class for DI resolution
-            
             // Register interface
             services.AddScoped<IShortTermDbContext>(provider => provider.GetRequiredService<ShortTermDbContext>());
+
+            // ── Repositories ──
+            services.AddScoped<ICustomerRepository, CustomerRepository>();
 
             // ── MediatR + FluentValidation ──
             services.AddMediatR(cfg =>
@@ -42,8 +46,6 @@ namespace ShortTerm.Infrastructure
                     o.UseSqlServer();
                     o.UseBusOutbox();
                 });
-
-                x.AddConsumer<UserReplicaSyncConsumer>();
 
                 x.UsingRabbitMq((context, cfg) =>
                 {
@@ -82,4 +84,3 @@ namespace ShortTerm.Infrastructure
         }
     }
 }
-

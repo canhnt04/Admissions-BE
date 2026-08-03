@@ -1,3 +1,6 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 namespace LeadAssignment.Domain.Entities
 {
     public class SystemConfig

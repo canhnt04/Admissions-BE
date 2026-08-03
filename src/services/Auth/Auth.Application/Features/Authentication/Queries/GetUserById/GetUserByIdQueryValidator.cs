@@ -1,3 +1,5 @@
+using Auth.Domain.Enums;
+using Shared.Contracts.Enums;
 using FluentValidation;
 
 namespace Auth.Application.Features.Authentication.Queries.GetUserById;

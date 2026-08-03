@@ -1,3 +1,6 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +17,7 @@ namespace LeadAssignment.Domain.Entities
         /// Hành động (Create/Update/Delete/Assign/SlaViolation)
         /// Lưu ý: Tránh nhầm lẫn với System.Action của C#
         /// </summary>
-        public Action Action { get; set; }
+        public Enums.Action Action { get; set; }
 
         // Mô tả chi tiết
         public string Detail { get; set; }
@@ -37,3 +40,4 @@ namespace LeadAssignment.Domain.Entities
         public Guid UserId { get; set; }
     }
 }
+

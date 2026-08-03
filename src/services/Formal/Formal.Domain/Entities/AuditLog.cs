@@ -1,8 +1,7 @@
+using Formal.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Formal.Domain.Entities
 {
@@ -11,29 +10,29 @@ namespace Formal.Domain.Entities
         public Guid Id { get; set; }
 
         /// <summary>
-        /// Hành động (Create/Update/Delete/Assign/SlaViolation)
-        /// Lưu ý: Tránh nhầm lẫn với System.Action của C#
+        /// Hanh dong (Create/Update/Delete)
         /// </summary>
-        public Action Action { get; set; }
+        public Enums.Action Action { get; set; }
 
-        // Mô tả chi tiết
+        // Mo ta chi tiet
         public string Detail { get; set; }
 
         /// <summary>
-        /// ID bản ghi bị tác động (Guid của Customer, Course, v.v.)
+        /// ID ban ghi bi tac dong
         /// </summary>
         public Guid RecordId { get; set; }
 
         public string RecordDesc { get; set; }
 
         /// <summary>
-        /// Loại entity (Customer, Course...)
+        /// Loai entity (Customer, Course...)
         /// </summary>
         public RecordEntity RecordEntity { get; set; }
 
         public DateTime CreationDate { get; set; }
 
-        // User thực hiện thao tác — chỉ lưu ID
+        // User thuc hien
         public Guid UserId { get; set; }
     }
 }
+

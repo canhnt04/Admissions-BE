@@ -1,3 +1,6 @@
+using Formal.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using Shared.Authentication;
 using Formal.Infrastructure;
 using Formal.Infrastructure.Data;
@@ -15,10 +18,11 @@ builder.Services.AddSwaggerGen(c =>
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Vui lòng nhập 'Bearer {token}'",
+        Description = "Vui lòng nhập Token (chỉ copy token, không cần gõ chữ Bearer)",
         Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT"
     });
     c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
     {
@@ -34,6 +38,12 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
+
+    var xmlFiles = System.IO.Directory.GetFiles(AppContext.BaseDirectory, "*.xml", System.IO.SearchOption.TopDirectoryOnly);
+    foreach (var xmlFile in xmlFiles)
+    {
+        try { c.IncludeXmlComments(xmlFile); } catch { }
+    }
 });
 
 

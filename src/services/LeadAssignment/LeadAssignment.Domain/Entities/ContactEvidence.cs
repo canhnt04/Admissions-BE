@@ -1,3 +1,6 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using System;
 
 namespace LeadAssignment.Domain.Entities
@@ -20,7 +23,6 @@ namespace LeadAssignment.Domain.Entities
         /// <summary>
         /// Loại bằng chứng (CallRecording, StatusChange, Note, Meeting, ZaloMessage, FacebookMessage)
         /// </summary>
-        public ContactEvidenceType Type { get; set; }
 
         /// <summary>
         /// URL file ghi âm cuộc gọi (nếu Type = CallRecording)
@@ -40,12 +42,8 @@ namespace LeadAssignment.Domain.Entities
         /// <summary>
         /// Giá trị trạng thái cũ (nếu Type = StatusChange)
         /// </summary>
-        public string? OldStatusValue { get; set; }
-
-        /// <summary>
-        /// Giá trị trạng thái mới (nếu Type = StatusChange)
-        /// </summary>
-        public string? NewStatusValue { get; set; }
+        public LeadStatus? LeadStatus { get; set; }
+        public FollowStatus? FollowStatus { get; set; }
 
         public DateTime CreatedAt { get; set; }
     }

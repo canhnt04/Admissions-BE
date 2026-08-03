@@ -1,7 +1,10 @@
+using Formal.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using Formal.Application.Common.Behaviors;
 using Formal.Application.Common.Interfaces;
-using Formal.Infrastructure.Consumers;
 using Formal.Infrastructure.Data;
+using Formal.Infrastructure.Repositories;
 using FluentValidation;
 using MassTransit;
 using MediatR;
@@ -21,10 +24,12 @@ namespace Formal.Infrastructure
                     configuration.GetConnectionString("CrmDatabase"),
                     b => b.MigrationsAssembly(typeof(FormalDbContext).Assembly.FullName)));
 
-            // Register as base class for DI resolution
-            
             // Register interface
             services.AddScoped<IFormalDbContext>(provider => provider.GetRequiredService<FormalDbContext>());
+
+            // ── Repositories ──
+            services.AddScoped<ICustomerRepository, CustomerRepository>();
+            services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
             // ── MediatR + FluentValidation ──
             services.AddMediatR(cfg =>
@@ -43,8 +48,6 @@ namespace Formal.Infrastructure
                     o.UseBusOutbox();
                 });
 
-                x.AddConsumer<UserReplicaSyncConsumer>();
-
                 x.UsingRabbitMq((context, cfg) =>
                 {
                     cfg.Host(configuration["RabbitMQ:Host"] ?? "localhost", "/", h =>
@@ -58,9 +61,6 @@ namespace Formal.Infrastructure
                     cfg.ConfigureEndpoints(context);
                 });
             });
-
-            // ── Background Services ──
-            // services.AddHostedService<SlaMonitorService>();
 
             return services;
         }
@@ -85,4 +85,3 @@ namespace Formal.Infrastructure
         }
     }
 }
-

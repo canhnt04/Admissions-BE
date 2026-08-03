@@ -1,5 +1,5 @@
-using Auth.Domain.Errors;
 using Auth.Application.Common.Interfaces;
+using Auth.Domain.Errors;
 using MediatR;
 using Shared.Common.Exceptions;
 
@@ -7,30 +7,38 @@ namespace Auth.Application.Features.Authentication.Commands.AssignUser;
 
 public class AssignUserCommandHandler : IRequestHandler<AssignUserCommand, AssignUserResponse>
 {
+    private readonly IUserRepository _userRepository;
+    private readonly ITeamRepository _teamRepository;
     private readonly IAuthDbContext _context;
     private readonly IUserEventPublisher _eventPublisher;
 
-    public AssignUserCommandHandler(IAuthDbContext context, IUserEventPublisher eventPublisher)
+    public AssignUserCommandHandler(
+        IUserRepository userRepository,
+        ITeamRepository teamRepository,
+        IAuthDbContext context,
+        IUserEventPublisher eventPublisher)
     {
+        _userRepository = userRepository;
+        _teamRepository = teamRepository;
         _context = context;
         _eventPublisher = eventPublisher;
     }
 
     public async Task<AssignUserResponse> Handle(AssignUserCommand request, CancellationToken cancellationToken)
     {
-        var user = await _context.Users.FindAsync(new object[] { request.UserId }, cancellationToken);
+        var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
         if (user == null) throw new NotFoundException(AuthErrors.UserNotFound);
 
         if (request.TeamId.HasValue)
         {
-            var team = await _context.Teams.FindAsync(new object[] { request.TeamId.Value }, cancellationToken);
+            var team = await _teamRepository.GetByIdAsync(request.TeamId.Value, cancellationToken);
             if (team == null) throw new NotFoundException(AuthErrors.TeamNotFound);
         }
 
         user.Role = request.Role;
         user.TeamId = request.TeamId;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _userRepository.Update(user);
 
         // Publish sync event via abstract publisher
         await _eventPublisher.PublishUserSyncAsync(
@@ -43,9 +51,11 @@ public class AssignUserCommandHandler : IRequestHandler<AssignUserCommand, Assig
             user.IsActived,
             cancellationToken);
 
+        await _context.SaveChangesAsync(cancellationToken);
+
         return new AssignUserResponse
         {
-            Message = "User role and team assigned successfully."
+            Message = "Cập nhật thành công."
         };
     }
 }

@@ -1,9 +1,8 @@
 using Auth.Application.Common.Helpers;
+using Auth.Application.Common.Interfaces;
 using Auth.Domain.Entities;
 using Auth.Domain.Errors;
-using Auth.Application.Common.Interfaces;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Shared.Common.Exceptions;
@@ -15,26 +14,24 @@ namespace Auth.Application.Features.Authentication.Commands.Login;
 
 public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
 {
-    private readonly IAuthDbContext _context;
+    private readonly IUserRepository _userRepository;
     private readonly IConfiguration _configuration;
 
-    public LoginCommandHandler(IAuthDbContext context, IConfiguration configuration)
+    public LoginCommandHandler(IUserRepository userRepository, IConfiguration configuration)
     {
-        _context = context;
+        _userRepository = userRepository;
         _configuration = configuration;
     }
 
     public async Task<LoginResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
-        var user = await _context.Users
-            .Include(u => u.Team)
-            .FirstOrDefaultAsync(u => u.UserName == request.UserName, cancellationToken);
-            
+        var user = await _userRepository.GetByUserNameAsync(request.UserName, cancellationToken);
+
         if (user == null || !user.IsActived)
             throw new UnauthorizedException(AuthErrors.InvalidCredentials);
 
         byte[] storedHash = Convert.FromBase64String(user.PasswordHash);
-        
+
         if (!PasswordHelper.VerifyPasswordHash(request.Password, storedHash, user.PasswordSalt))
             throw new UnauthorizedException(AuthErrors.InvalidCredentials);
 

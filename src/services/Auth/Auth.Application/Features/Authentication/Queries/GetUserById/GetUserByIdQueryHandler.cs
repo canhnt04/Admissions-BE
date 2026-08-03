@@ -1,3 +1,5 @@
+using Auth.Domain.Enums;
+using Shared.Contracts.Enums;
 using Auth.Domain.Errors;
 using Auth.Application.Common.Interfaces;
 using MediatR;
@@ -8,16 +10,16 @@ namespace Auth.Application.Features.Authentication.Queries.GetUserById;
 
 public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDto>
 {
-    private readonly IAuthDbContext _context;
+    private readonly IUserRepository _userRepository;
 
-    public GetUserByIdQueryHandler(IAuthDbContext context)
+    public GetUserByIdQueryHandler(IUserRepository userRepository)
     {
-        _context = context;
+        _userRepository = userRepository;
     }
 
     public async Task<UserDto> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
     {
-        var user = await _context.Users
+        var user = await _userRepository.Query()
             .AsNoTracking()
             .Where(u => u.Id == request.UserId)
             .Select(u => new UserDto

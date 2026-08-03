@@ -1,0 +1,2 @@
+using System.ComponentModel;
+namespace Customer.Domain.Enums { public enum EducationLevel { [Description("Chưa tốt nghiệp THCS")] UnderSecondarySchool = 1, [Description("Tốt nghiệp THCS")] SecondarySchool, [Description("Tốt nghiệp THPT")] HighSchool, [Description("Trung Cấp/Chứng chỉ nghề")] Intermediate, [Description("Cao đẳng")] College, [Description("Đại học")] Undergraduate, [Description("Sau đại học")] Graduate, [Description("Đào tạo lái xe")] DrivingTraining, } }

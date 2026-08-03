@@ -1,3 +1,6 @@
+using ShortTerm.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using FluentValidation;
 using MediatR;
 

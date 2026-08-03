@@ -37,7 +37,7 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
                 }).ToList();
 
                 var error = new Shared.Common.Error(400, "Validation.Failed", "One or more validation failures occurred.");
-                
+
                 throw new Shared.Common.Exceptions.ValidationException(error, validationErrors);
             }
         }

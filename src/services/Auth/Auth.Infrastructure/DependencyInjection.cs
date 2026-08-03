@@ -1,7 +1,11 @@
+using Auth.Domain.Enums;
+using Shared.Contracts.Enums;
 using Auth.Application.Common.Helpers;
 using Auth.Application.Common.Interfaces;
 using Auth.Domain.Entities;
+using Auth.Domain.Enums;
 using Auth.Infrastructure.Data;
+using Auth.Infrastructure.Repositories;
 using Shared.Common.Extensions;
 using Auth.Infrastructure.Messaging.Publishers;
 using FluentValidation;
@@ -23,6 +27,10 @@ namespace Auth.Infrastructure
                     b => b.MigrationsAssembly(typeof(AuthDbContext).Assembly.FullName)));
 
             services.AddScoped<IAuthDbContext>(provider => provider.GetRequiredService<AuthDbContext>());
+
+            // ── Repositories ─────────────────────────────────────────────
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<ITeamRepository, TeamRepository>();
 
             services.AddMassTransit(x =>
             {
@@ -82,15 +90,15 @@ namespace Auth.Infrastructure
 
                     if (!context.Users.Any(u => u.UserName == "admin"))
                     {
-                         PasswordHelper.CreatePasswordHash("admin", out byte[] passwordHash, out byte[] passwordSalt);
+                        PasswordHelper.CreatePasswordHash("admin", out byte[] passwordHash, out byte[] passwordSalt);
                         context.Users.Add(new Auth.Domain.Entities.User
                         {
                             Id = Guid.NewGuid(),
                             UserName = "admin",
-                            PasswordHash = Convert.ToBase64String(passwordHash),  
-                            PasswordSalt = passwordSalt,   
+                            PasswordHash = Convert.ToBase64String(passwordHash),
+                            PasswordSalt = passwordSalt,
                             FullName = "Admin",
-                            Role = Auth.Domain.Entities.Role.Admin,
+                            Role = Auth.Domain.Enums.Role.Admin,
                             Mobile = "",
                             IdentificationNumber = "000000000000",
                             IsActived = true,

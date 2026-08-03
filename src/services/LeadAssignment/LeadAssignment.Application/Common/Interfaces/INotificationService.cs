@@ -1,3 +1,6 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 namespace LeadAssignment.Application.Common.Interfaces
 {
     public interface INotificationService

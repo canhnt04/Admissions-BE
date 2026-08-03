@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using ShortTerm.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 

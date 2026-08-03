@@ -1,3 +1,6 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -25,10 +28,11 @@ namespace LeadAssignment.API.Security
 
             services.AddAuthorization(options =>
             {
-                // Cho phép người dùng có Role = Admin HOẶC thuộc Team CustomerCare (RoleTeam = 3)
+                // Cho phép người dùng có Role = Admin, hoặc Role = 3 (EntryClerk/Tư vấn viên), hoặc thuộc Team CustomerCare (RoleTeam = 3)
                 options.AddPolicy("RequireCustomerCareOrAdmin", policy =>
                     policy.RequireAssertion(context =>
                         context.User.IsInRole("Admin") ||
+                        context.User.IsInRole("EntryClerk") ||
                         context.User.HasClaim(c => c.Type == "RoleTeam" && c.Value == "3")
                     ));
 

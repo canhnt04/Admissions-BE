@@ -1,3 +1,5 @@
+using Auth.Domain.Enums;
+using Shared.Contracts.Enums;
 using Shared.Common;
 
 namespace Auth.Domain.Errors;

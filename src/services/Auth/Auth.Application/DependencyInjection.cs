@@ -1,3 +1,5 @@
+using Auth.Domain.Enums;
+using Shared.Contracts.Enums;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Common.Behaviors;

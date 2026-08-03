@@ -1,0 +1,2 @@
+using System.ComponentModel;
+namespace Shared.Contracts.Enums { public enum CourseCategory { [Description("Sơ Cấp Ngắn Hạn")] SCNH = 1, [Description("Trung Cấp Chính Quy")] TCCQ = 2, [Description("Cao Đẳng Chính Quy")] CDCQ = 3, [Description("Đại Học Liên Thông")] DHLT = 4, [Description("Cao Đẳng 9 +")] CD9 = 5, [Description("Đào tạo lái xe")] DrivingTraining = 6, [Description("Kỹ năng chuyên môn")] TechnicalSkills = 7, } }

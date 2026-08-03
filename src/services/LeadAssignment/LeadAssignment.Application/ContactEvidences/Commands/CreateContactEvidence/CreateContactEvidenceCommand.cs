@@ -1,3 +1,6 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using LeadAssignment.Domain.Entities;
 using MediatR;
 using Shared.Common;
@@ -12,11 +15,11 @@ namespace LeadAssignment.Application.ContactEvidences.Commands.CreateContactEvid
     {
         public Guid CustomerId { get; set; }
         public Guid ConsultantId { get; set; }
-        public ContactEvidenceType Type { get; set; }
         public string? FileUrl { get; set; }
         public string? Description { get; set; }
         public int? DurationSeconds { get; set; }
-        public string? OldStatusValue { get; set; }
-        public string? NewStatusValue { get; set; }
+        public LeadStatus? LeadStatus { get; set; }
+        public FollowStatus? FollowStatus { get; set; }
     }
 }
+

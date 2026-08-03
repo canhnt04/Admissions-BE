@@ -1,6 +1,10 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using LeadAssignment.Application.Common.Interfaces;
 using LeadAssignment.Infrastructure.Consumers;
 using LeadAssignment.Infrastructure.Data;
+using LeadAssignment.Infrastructure.Repositories;
 using LeadAssignment.Infrastructure.Services;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -13,8 +17,8 @@ namespace LeadAssignment.Infrastructure
     {
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
-            var connectionString = configuration.GetConnectionString("DefaultConnection") 
-                ?? configuration.GetConnectionString("LeadAssignmentDatabase") 
+            var connectionString = configuration.GetConnectionString("DefaultConnection")
+                ?? configuration.GetConnectionString("LeadAssignmentDatabase")
                 ?? configuration.GetConnectionString("AuthDatabase");
 
             services.AddDbContext<AssignmentDbContext>(options =>
@@ -23,9 +27,24 @@ namespace LeadAssignment.Infrastructure
 
             services.AddScoped<IAssignmentDbContext>(provider => provider.GetRequiredService<AssignmentDbContext>());
 
-            services.AddScoped<IAssignmentService, AssignmentService>();
+            // ── Repositories ─────────────────────────────────────────────
+            services.AddScoped<IAssignmentQueueRepository, AssignmentQueueRepository>();
+            services.AddScoped<ICustomerCareStatusRepository, CustomerCareStatusRepository>();
+            services.AddScoped<ICustomerAssignmentHistoryRepository, CustomerAssignmentHistoryRepository>();
+            services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+            services.AddScoped<ISystemConfigRepository, SystemConfigRepository>();
+            services.AddScoped<IContactEvidenceRepository, ContactEvidenceRepository>();
+            services.AddScoped<INotificationRepository, NotificationRepository>();
+
             services.AddScoped<INotificationService, NotificationService>();
             services.AddScoped<IEmailSender, DevEmailSender>();
+
+            var authServiceUrl = configuration["GrpcConfig:AuthServiceUrl"] ?? "http://auth-api:8080";
+            services.AddGrpcClient<Shared.Protos.Users.UserService.UserServiceClient>(o =>
+            {
+                o.Address = new Uri(authServiceUrl);
+            });
+            services.AddScoped<IUserGrpcClient, UserGrpcClient>();
 
             services.AddMassTransit(x =>
             {
@@ -37,7 +56,6 @@ namespace LeadAssignment.Infrastructure
 
                 x.AddConsumer<AutoAssignmentConsumer>();
                 x.AddConsumer<SlaViolationConsumer>();
-                x.AddConsumer<UserReplicaSyncConsumer>();
 
                 x.UsingRabbitMq((context, cfg) =>
                 {

@@ -1,3 +1,6 @@
+using Driving.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using Driving.Domain.Entities;
 
 namespace Driving.Application.Events

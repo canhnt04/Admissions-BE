@@ -1,3 +1,6 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using LeadAssignment.Application.Common.Interfaces;
 
 using MediatR;
@@ -13,10 +16,12 @@ namespace LeadAssignment.Application.Assignments.Queries.GetAssignmentReport
     public class GetAssignmentReportQueryHandler : IRequestHandler<GetAssignmentReportQuery, Result<List<AssignmentReportDto>>>
     {
         private readonly IAssignmentDbContext _context;
+        private readonly IUserGrpcClient _userGrpcClient;
 
-        public GetAssignmentReportQueryHandler(IAssignmentDbContext context)
+        public GetAssignmentReportQueryHandler(IAssignmentDbContext context, IUserGrpcClient userGrpcClient)
         {
             _context = context;
+            _userGrpcClient = userGrpcClient;
         }
 
         public async Task<Result<List<AssignmentReportDto>>> Handle(GetAssignmentReportQuery request, CancellationToken cancellationToken)
@@ -25,7 +30,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetAssignmentReport
 
             if (request.FromDate.HasValue)
                 query = query.Where(x => x.AssignedAt >= request.FromDate.Value);
-            
+
             if (request.ToDate.HasValue)
                 query = query.Where(x => x.AssignedAt <= request.ToDate.Value);
 
@@ -41,15 +46,14 @@ namespace LeadAssignment.Application.Assignments.Queries.GetAssignmentReport
                 })
                 .ToListAsync(cancellationToken);
 
-            var consultantIds = grouped.Select(x => x.ConsultantId).ToList();
-            var consultants = await _context.UserReplicas
-                .Where(x => consultantIds.Contains(x.Id))
-                .ToDictionaryAsync(x => x.Id, x => x.FullName, cancellationToken);
+            // Lấy tên tư vấn viên qua gRPC
+            var consultantIds = grouped.Select(g => g.ConsultantId).Distinct().ToList();
+            var userNames = await _userGrpcClient.GetUserNamesAsync(consultantIds, cancellationToken);
 
             var report = grouped.Select(g => new AssignmentReportDto
             {
                 ConsultantId = g.ConsultantId,
-                ConsultantName = consultants.ContainsKey(g.ConsultantId) ? consultants[g.ConsultantId] : "N/A",
+                ConsultantName = userNames.GetValueOrDefault(g.ConsultantId, "Unknown"),
                 TotalAssigned = g.TotalAssigned,
                 SlaFulfilled = g.SlaFulfilled,
                 SlaViolated = g.SlaViolated,
@@ -60,4 +64,3 @@ namespace LeadAssignment.Application.Assignments.Queries.GetAssignmentReport
         }
     }
 }
-

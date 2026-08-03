@@ -1,6 +1,7 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using LeadAssignment.Application.Events;
-
-
 using LeadAssignment.Domain.Entities;
 using LeadAssignment.Application.Common.Interfaces;
 using MassTransit;
@@ -12,11 +13,22 @@ namespace LeadAssignment.Application.ContactEvidences.Commands.CreateContactEvid
 {
     public class CreateContactEvidenceHandler : IRequestHandler<CreateContactEvidenceCommand, Result<Guid>>
     {
+        private readonly IContactEvidenceRepository _contactEvidenceRepository;
+        private readonly ICustomerCareStatusRepository _customerCareStatusRepository;
+        private readonly IAuditLogRepository _auditLogRepository;
         private readonly IAssignmentDbContext _context;
         private readonly IPublishEndpoint _publishEndpoint;
 
-        public CreateContactEvidenceHandler(IAssignmentDbContext context, IPublishEndpoint publishEndpoint)
+        public CreateContactEvidenceHandler(
+            IContactEvidenceRepository contactEvidenceRepository,
+            ICustomerCareStatusRepository customerCareStatusRepository,
+            IAuditLogRepository auditLogRepository,
+            IAssignmentDbContext context,
+            IPublishEndpoint publishEndpoint)
         {
+            _contactEvidenceRepository = contactEvidenceRepository;
+            _customerCareStatusRepository = customerCareStatusRepository;
+            _auditLogRepository = auditLogRepository;
             _context = context;
             _publishEndpoint = publishEndpoint;
         }
@@ -29,20 +41,19 @@ namespace LeadAssignment.Application.ContactEvidences.Commands.CreateContactEvid
                 Id = Guid.NewGuid(),
                 CustomerId = request.CustomerId,
                 ConsultantId = request.ConsultantId,
-                Type = request.Type,
                 FileUrl = request.FileUrl,
                 Description = request.Description,
                 DurationSeconds = request.DurationSeconds,
-                OldStatusValue = request.OldStatusValue,
-                NewStatusValue = request.NewStatusValue,
+                LeadStatus = request.LeadStatus,
+                FollowStatus = request.FollowStatus,
                 CreatedAt = DateTime.UtcNow,
             };
 
-            _context.ContactEvidences.Add(evidence);
+            _contactEvidenceRepository.Add(evidence);
 
             // 2. Tìm SLA tracking đang active cho KH + NV này
             //    (IsContactMade = false, IsReassigned = false)
-            var activeSla = await _context.CustomerCareStatuses
+            var activeSla = await _customerCareStatusRepository
                 .FirstOrDefaultAsync(s =>
                     s.CustomerId == request.CustomerId &&
                     s.AssigneeId == request.ConsultantId &&
@@ -55,17 +66,18 @@ namespace LeadAssignment.Application.ContactEvidences.Commands.CreateContactEvid
                 // Mark SLA as complied — NV đã liên hệ KH trong thời hạn
                 activeSla.IsContactMade = true;
                 activeSla.FirstContactAt = DateTime.UtcNow;
+                _customerCareStatusRepository.Update(activeSla);
             }
 
             // 3. Ghi AuditLog
-            _context.AuditLogs.Add(new AuditLog
+            _auditLogRepository.Add(new AuditLog
             {
                 Id = Guid.NewGuid(),
-                Action = Domain.Entities.Action.Insert,
-                Detail = $"Upload bằng chứng liên hệ: {request.Type} cho KH {request.CustomerId}",
+                Action = LeadAssignment.Domain.Enums.Action.Insert,
+                Detail = $"Upload bằng chứng liên hệ cho KH {request.CustomerId}",
                 RecordId = evidence.Id,
-                RecordDesc = request.Type.ToString(),
-                RecordEntity = RecordEntity.ContactEvidence,
+                RecordDesc = "Ghi chú tư vấn",
+                RecordEntity = RecordEntity.CustomerNote,
                 CreationDate = DateTime.UtcNow,
                 UserId = request.ConsultantId,
             });
@@ -78,7 +90,8 @@ namespace LeadAssignment.Application.ContactEvidences.Commands.CreateContactEvid
                 ContactEvidenceId = evidence.Id,
                 CustomerId = request.CustomerId,
                 ConsultantId = request.ConsultantId,
-                EvidenceType = request.Type.ToString(),
+                LeadStatus = (int?)request.LeadStatus,
+                FollowStatus = (int?)request.FollowStatus,
                 SubmittedAt = DateTime.UtcNow,
             }, cancellationToken);
 
@@ -86,4 +99,3 @@ namespace LeadAssignment.Application.ContactEvidences.Commands.CreateContactEvid
         }
     }
 }
-

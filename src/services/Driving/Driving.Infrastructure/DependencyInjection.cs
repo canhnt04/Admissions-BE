@@ -1,7 +1,10 @@
+using Driving.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using Driving.Application.Common.Behaviors;
 using Driving.Application.Common.Interfaces;
-using Driving.Infrastructure.Consumers;
 using Driving.Infrastructure.Data;
+using Driving.Infrastructure.Repositories;
 using FluentValidation;
 using MassTransit;
 using MediatR;
@@ -21,10 +24,12 @@ namespace Driving.Infrastructure
                     configuration.GetConnectionString("CrmDatabase"),
                     b => b.MigrationsAssembly(typeof(DrivingDbContext).Assembly.FullName)));
 
-            // Register as base class for DI resolution
-            
             // Register interface
             services.AddScoped<IDrivingDbContext>(provider => provider.GetRequiredService<DrivingDbContext>());
+
+            // ── Repositories ──
+            services.AddScoped<ICustomerRepository, CustomerRepository>();
+            services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
             // ── MediatR + FluentValidation ──
             services.AddMediatR(cfg =>
@@ -42,8 +47,6 @@ namespace Driving.Infrastructure
                     o.UseSqlServer();
                     o.UseBusOutbox();
                 });
-
-                x.AddConsumer<UserReplicaSyncConsumer>();
 
                 x.UsingRabbitMq((context, cfg) =>
                 {
@@ -82,4 +85,3 @@ namespace Driving.Infrastructure
         }
     }
 }
-

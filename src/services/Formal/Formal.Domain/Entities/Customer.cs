@@ -1,3 +1,6 @@
+using Formal.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,8 +36,6 @@ namespace Formal.Domain.Entities
         public Guid? Assignee { get; set; }
 
         // Navigation → UserReplica (bản sao nội bộ, đồng bộ qua RabbitMQ)
-        public virtual UserReplica? AssigneeUser { get; set; }
-
         public DateTime? BirthDate { get; set; }
         public string Gender { get; set; }
         public string Address { get; set; }
@@ -93,6 +94,7 @@ namespace Formal.Domain.Entities
         public Enrollment? Enrollment { get; set; }
 
         // Đếm số lần bị thu hồi do vi phạm SLA
-        public int ReassignmentCount { get; set; }
     }
 }
+
+

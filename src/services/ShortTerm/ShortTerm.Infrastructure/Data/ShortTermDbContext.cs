@@ -1,3 +1,6 @@
+using ShortTerm.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using ShortTerm.Application.Common.Interfaces;
 using ShortTerm.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -12,12 +15,11 @@ namespace ShortTerm.Infrastructure.Data
     {
         public ShortTermDbContext(DbContextOptions<ShortTermDbContext> options) : base(options) { }
 
-        public DbSet<Customer> Customers { get; set; }
+        public DbSet<ShortTerm.Domain.Entities.Customer> Customers { get; set; }
         public DbSet<Course> Courses { get; set; }
         public DbSet<CourseParticipant> CourseParticipants { get; set; }
         public DbSet<CourseParticipantPayment> CourseParticipantPayments { get; set; }
         public DbSet<CustomTag> CustomTags { get; set; }
-        public DbSet<UserReplica> UserReplicas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -26,15 +28,7 @@ namespace ShortTerm.Infrastructure.Data
             modelBuilder.AddInboxStateEntity();
             modelBuilder.AddOutboxMessageEntity();
             modelBuilder.AddOutboxStateEntity();
-
-            modelBuilder.Entity<UserReplica>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.FullName).HasMaxLength(100);
-                entity.Property(e => e.Mobile).HasMaxLength(50);
-            });
-
-            modelBuilder.Entity<Customer>(entity =>
+            modelBuilder.Entity<ShortTerm.Domain.Entities.Customer>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.CustomerNumber).ValueGeneratedOnAdd();
@@ -50,11 +44,6 @@ namespace ShortTerm.Infrastructure.Data
                 entity.Property(e => e.Ethnic).HasMaxLength(500);
                 entity.Property(e => e.SchoolAddress).HasMaxLength(500);
                 entity.Property(e => e.ParentMobile).HasMaxLength(50);
-
-                entity.HasOne(e => e.AssigneeUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.Assignee)
-                      .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasIndex(e => new { e.TrainingSystem, e.Assignee })
                       .HasDatabaseName("IX_Customer_TrainingSystem_Assignee");
@@ -94,4 +83,6 @@ namespace ShortTerm.Infrastructure.Data
         }
     }
 }
+
+
 

@@ -1,3 +1,5 @@
+using Auth.Domain.Enums;
+using Shared.Contracts.Enums;
 using System;
 using System.Threading;
 using System.Threading.Tasks;

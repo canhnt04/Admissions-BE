@@ -1,3 +1,6 @@
+using Driving.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 using System;
 
 namespace Driving.Domain.Entities

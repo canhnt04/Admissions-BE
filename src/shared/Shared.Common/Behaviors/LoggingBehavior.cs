@@ -27,7 +27,7 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
 
         timer.Stop();
 
-        _logger.LogInformation("Handled {RequestName} successfully. Execution Time: {ElapsedMilliseconds} ms. Response: {@Response}", 
+        _logger.LogInformation("Handled {RequestName} successfully. Execution Time: {ElapsedMilliseconds} ms. Response: {@Response}",
             requestName, timer.ElapsedMilliseconds, response);
 
         return response;

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option csharp_namespace = "Shared.Protos.Users";
+
+package users;
+
+service UserService {
+  rpc GetUsersByIds (GetUsersRequest) returns (GetUsersResponse);
+}
+
+message GetUsersRequest {
+  repeated string userIds = 1;
+}
+
+message GetUsersResponse {
+  map<string, string> userMap = 1; // Map<UserId, FullName>
+}

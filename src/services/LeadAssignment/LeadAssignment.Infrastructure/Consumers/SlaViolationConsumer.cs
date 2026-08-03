@@ -1,10 +1,7 @@
-using LeadAssignment.Application.Common.Interfaces;
+using LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolation;
 using LeadAssignment.Application.Events;
-using LeadAssignment.Infrastructure.Data;
-using LeadAssignment.Domain.Entities;
-
-
 using MassTransit;
+using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace LeadAssignment.Infrastructure.Consumers
@@ -15,12 +12,12 @@ namespace LeadAssignment.Infrastructure.Consumers
     /// </summary>
     public class SlaViolationConsumer : IConsumer<SlaViolationEvent>
     {
-        private readonly IAssignmentService _assignmentService;
+        private readonly IMediator _mediator;
         private readonly ILogger<SlaViolationConsumer> _logger;
 
-        public SlaViolationConsumer(IAssignmentService assignmentService, ILogger<SlaViolationConsumer> logger)
+        public SlaViolationConsumer(IMediator mediator, ILogger<SlaViolationConsumer> logger)
         {
-            _assignmentService = assignmentService;
+            _mediator = mediator;
             _logger = logger;
         }
 
@@ -35,14 +32,17 @@ namespace LeadAssignment.Infrastructure.Consumers
                 msg.ViolatedAssigneeName, msg.ViolatedAssigneeId,
                 msg.AssignedAt, msg.Deadline, msg.ViolatedAt);
 
-            var newAssigneeId = await _assignmentService.ReassignAfterSlaViolationAsync(
-                msg.CustomerId, msg.ViolatedAssigneeId, context.CancellationToken);
+            var result = await _mediator.Send(new ReassignAfterSlaViolationCommand
+            {
+                CustomerId = msg.CustomerId,
+                ViolatedAssigneeId = msg.ViolatedAssigneeId,
+            }, context.CancellationToken);
 
-            if (newAssigneeId.HasValue)
+            if (result.Data.HasValue)
             {
                 _logger.LogInformation(
                     "SLA Reassign thành công: KH {CustomerId} giao cho NV {NewAssigneeId}",
-                    msg.CustomerId, newAssigneeId.Value);
+                    msg.CustomerId, result.Data.Value);
             }
             else
             {
@@ -53,5 +53,3 @@ namespace LeadAssignment.Infrastructure.Consumers
         }
     }
 }
-
-

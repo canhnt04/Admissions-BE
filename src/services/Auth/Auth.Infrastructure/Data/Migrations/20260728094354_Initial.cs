@@ -1,4 +1,6 @@
-﻿using System;
+using Auth.Domain.Enums;
+using Shared.Contracts.Enums;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable

@@ -1,3 +1,6 @@
+using LeadAssignment.Domain.Enums;
+using Customer.Domain.Enums;
+using Shared.Contracts.Enums;
 
 using LeadAssignment.Domain.Entities;
 using LeadAssignment.Application.Common.Interfaces;
@@ -9,10 +12,12 @@ namespace LeadAssignment.Application.Assignments.Commands.UpdateSlaConfig
 {
     public class UpdateSlaConfigCommandHandler : IRequestHandler<UpdateSlaConfigCommand, Result<bool>>
     {
+        private readonly ISystemConfigRepository _systemConfigRepository;
         private readonly IAssignmentDbContext _context;
 
-        public UpdateSlaConfigCommandHandler(IAssignmentDbContext context)
+        public UpdateSlaConfigCommandHandler(ISystemConfigRepository systemConfigRepository, IAssignmentDbContext context)
         {
+            _systemConfigRepository = systemConfigRepository;
             _context = context;
         }
 
@@ -20,27 +25,29 @@ namespace LeadAssignment.Application.Assignments.Commands.UpdateSlaConfig
         {
             if (request.SlaDeadlineMinutes.HasValue)
             {
-                var slaConfig = await _context.SystemConfigs.FindAsync(new object[] { "SlaDeadlineMinutes" }, cancellationToken);
+                var slaConfig = await _systemConfigRepository.FirstOrDefaultAsync(x => x.Id == "SlaDeadlineMinutes", cancellationToken);
                 if (slaConfig == null)
                 {
-                    _context.SystemConfigs.Add(new SystemConfig { Id = "SlaDeadlineMinutes", Value = request.SlaDeadlineMinutes.Value.ToString(), Description = "SLA Deadline in minutes" });
+                    _systemConfigRepository.Add(new SystemConfig { Id = "SlaDeadlineMinutes", Value = request.SlaDeadlineMinutes.Value.ToString(), Description = "SLA Deadline in minutes" });
                 }
                 else
                 {
                     slaConfig.Value = request.SlaDeadlineMinutes.Value.ToString();
+                    _systemConfigRepository.Update(slaConfig);
                 }
             }
 
             if (request.DefaultManagerId.HasValue)
             {
-                var managerConfig = await _context.SystemConfigs.FindAsync(new object[] { "DefaultManagerId" }, cancellationToken);
+                var managerConfig = await _systemConfigRepository.FirstOrDefaultAsync(x => x.Id == "DefaultManagerId", cancellationToken);
                 if (managerConfig == null)
                 {
-                    _context.SystemConfigs.Add(new SystemConfig { Id = "DefaultManagerId", Value = request.DefaultManagerId.Value.ToString(), Description = "Default Manager ID for SLA 3-strikes escalation" });
+                    _systemConfigRepository.Add(new SystemConfig { Id = "DefaultManagerId", Value = request.DefaultManagerId.Value.ToString(), Description = "Default Manager ID for SLA 3-strikes escalation" });
                 }
                 else
                 {
                     managerConfig.Value = request.DefaultManagerId.Value.ToString();
+                    _systemConfigRepository.Update(managerConfig);
                 }
             }
 

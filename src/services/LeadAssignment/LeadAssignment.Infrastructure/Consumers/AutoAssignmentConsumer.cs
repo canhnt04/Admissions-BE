@@ -1,10 +1,7 @@
-using LeadAssignment.Application.Common.Interfaces;
-using LeadAssignment.Application.Events;
-using LeadAssignment.Infrastructure.Data;
-using LeadAssignment.Domain.Entities;
-
-
+using LeadAssignment.Application.Assignments.Commands.AutoAssign;
+using Shared.Contracts.Events.Customer;
 using MassTransit;
+using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace LeadAssignment.Infrastructure.Consumers
@@ -15,12 +12,12 @@ namespace LeadAssignment.Infrastructure.Consumers
     /// </summary>
     public class AutoAssignmentConsumer : IConsumer<CustomerCreatedEvent>
     {
-        private readonly IAssignmentService _assignmentService;
+        private readonly IMediator _mediator;
         private readonly ILogger<AutoAssignmentConsumer> _logger;
 
-        public AutoAssignmentConsumer(IAssignmentService assignmentService, ILogger<AutoAssignmentConsumer> logger)
+        public AutoAssignmentConsumer(IMediator mediator, ILogger<AutoAssignmentConsumer> logger)
         {
-            _assignmentService = assignmentService;
+            _mediator = mediator;
             _logger = logger;
         }
 
@@ -32,14 +29,17 @@ namespace LeadAssignment.Infrastructure.Consumers
                 "Nhận CustomerCreatedEvent: KH {CustomerName} ({CustomerId}), nhánh {TrainingSystem}",
                 msg.CustomerName, msg.CustomerId, msg.TrainingSystem);
 
-            var assigneeId = await _assignmentService.AutoAssignAsync(
-                msg.CustomerId, msg.TrainingSystem, context.CancellationToken);
+            var result = await _mediator.Send(new AutoAssignCommand
+            {
+                CustomerId = msg.CustomerId,
+                TrainingSystem = msg.TrainingSystem,
+            }, context.CancellationToken);
 
-            if (assigneeId.HasValue)
+            if (result.Data.HasValue)
             {
                 _logger.LogInformation(
                     "Auto-assigned KH {CustomerId} cho NV {AssigneeId}",
-                    msg.CustomerId, assigneeId.Value);
+                    msg.CustomerId, result.Data.Value);
             }
             else
             {
@@ -50,5 +50,3 @@ namespace LeadAssignment.Infrastructure.Consumers
         }
     }
 }
-
-

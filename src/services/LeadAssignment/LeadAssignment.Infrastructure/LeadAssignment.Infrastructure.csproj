@@ -3,9 +3,11 @@
   <ItemGroup>
     <ProjectReference Include="..\LeadAssignment.Application\LeadAssignment.Application.csproj" />
     <ProjectReference Include="..\..\..\shared\Shared.Messaging\Shared.Messaging.csproj" />
+    <ProjectReference Include="..\..\..\shared\Shared.Protos\Shared.Protos.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.80.0" />
     <PackageReference Include="MassTransit.EntityFrameworkCore" Version="8.3.4" />
     <PackageReference Include="MassTransit.RabbitMQ" Version="8.3.4" />
     <PackageReference Include="MediatR" Version="12.2.0" />

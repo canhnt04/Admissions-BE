@@ -1,3 +1,5 @@
+using Auth.Domain.Enums;
+using Shared.Contracts.Enums;
 using Auth.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -6,16 +8,16 @@ namespace Auth.Application.Features.Authentication.Queries.GetUsers;
 
 public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, List<UserDto>>
 {
-    private readonly IAuthDbContext _context;
+    private readonly IUserRepository _userRepository;
 
-    public GetUsersQueryHandler(IAuthDbContext context)
+    public GetUsersQueryHandler(IUserRepository userRepository)
     {
-        _context = context;
+        _userRepository = userRepository;
     }
 
     public async Task<List<UserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
     {
-        var users = await _context.Users
+        var users = await _userRepository.Query()
             .AsNoTracking()
             .Select(u => new UserDto
             {
