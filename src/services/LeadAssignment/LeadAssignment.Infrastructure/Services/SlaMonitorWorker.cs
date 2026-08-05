@@ -98,12 +98,12 @@ namespace LeadAssignment.Infrastructure.Services
             _logger.LogWarning("Phát hiện {Count} SLA violations", violations.Count);
 
             var assigneeIds = violations.Select(v => v.AssigneeId!.Value).Distinct().ToList();
-            var userNames = await userGrpcClient.GetUserNamesAsync(assigneeIds, cancellationToken);
+            var fullNames = await userGrpcClient.GetUserFullNamesAsync(assigneeIds, cancellationToken);
 
             foreach (var sla in violations)
             {
                 var assigneeId = sla.AssigneeId!.Value;
-                var assigneeName = userNames[assigneeId];
+                var assigneeName = fullNames[assigneeId];
                 var assignedAt = sla.StatusDate ?? now;
 
                 _logger.LogWarning(

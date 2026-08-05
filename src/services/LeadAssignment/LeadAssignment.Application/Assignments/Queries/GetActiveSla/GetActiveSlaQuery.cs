@@ -61,7 +61,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
                 .ToListAsync(cancellationToken);
 
             var assigneeIds = rawSlaList.Select(s => s.AssigneeId).Distinct().ToList();
-            var userNames = await _userGrpcClient.GetUserNamesAsync(assigneeIds, cancellationToken);
+            var fullNames = await _userGrpcClient.GetUserFullNamesAsync(assigneeIds, cancellationToken);
 
             var now = DateTime.UtcNow;
             var slaThreshold = now.AddMinutes(-30);
@@ -73,7 +73,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
                 CustomerName = s.CustomerName,
                 TrainingSystem = s.TrainingSystem.ToString() ?? string.Empty,
                 AssigneeId = s.AssigneeId,
-                AssigneeName = userNames[s.AssigneeId],
+                AssigneeName = fullNames[s.AssigneeId],
                 AssignedAt = s.StatusDate ?? now,
                 Deadline = (s.StatusDate ?? now).AddMinutes(30),
                 RemainingMinutes = (int)((s.StatusDate ?? now).AddMinutes(30) - now).TotalMinutes,

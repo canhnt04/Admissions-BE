@@ -38,13 +38,13 @@ namespace LeadAssignment.Application.Assignments.Queries.GetCustomerAssignmentHi
                 .Where(id => id != Guid.Empty)
                 .ToList();
 
-            var userNames = await _userGrpcClient.GetUserNamesAsync(userIds, cancellationToken);
+            var fullNames = await _userGrpcClient.GetUserFullNamesAsync(userIds, cancellationToken);
 
             var result = histories.Select(h => new CustomerAssignmentHistoryDto
             {
                 Id = h.Id,
                 AssigneeId = h.AssigneeId,
-                AssigneeName = userNames[h.AssigneeId],
+                AssigneeName = fullNames[h.AssigneeId],
                 AssignedById = h.AssignedById,
                 AssignmentDate = h.AssignmentDate
             }).ToList();

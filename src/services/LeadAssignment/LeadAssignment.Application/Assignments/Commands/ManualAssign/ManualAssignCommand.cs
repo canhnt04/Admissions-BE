@@ -66,10 +66,10 @@ namespace LeadAssignment.Application.Assignments.Commands.ManualAssign
             var trainingSystem = latestStatus?.TrainingSystem;
 
             // Resolve tên tư vấn viên qua gRPC
-            var userNames = await _userGrpcClient.GetUserNamesAsync(
+            var fullNames = await _userGrpcClient.GetUserFullNamesAsync(
                 new[] { request.AssigneeId, request.AssignedById }.Distinct(),
                 cancellationToken);
-            var assigneeName = userNames[request.AssigneeId];
+            var assigneeName = fullNames[request.AssigneeId];
 
             var now = DateTime.UtcNow;
 

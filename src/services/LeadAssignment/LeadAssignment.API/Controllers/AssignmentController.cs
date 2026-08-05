@@ -34,7 +34,7 @@ namespace LeadAssignment.API.Controllers
         }
 
         /// <summary>
-        /// Bật trạng thái sẵn sàng nhận khách hàng (Dành cho Tư vấn viên)
+        /// Bật trạng thái sẵn sàng nhận khách hàng (Tư vấn viên)
         /// </summary>
         [HttpPost("check-in")]
         public async Task<ActionResult> CheckIn()
@@ -71,7 +71,7 @@ namespace LeadAssignment.API.Controllers
         }
 
         /// <summary>
-        /// Tắt trạng thái nhận khách hàng / Nghỉ làm (Dành cho Tư vấn viên)
+        /// Tắt trạng thái nhận khách hàng / Nghỉ làm (Tư vấn viên)
         /// </summary>
         [HttpPost("check-out")]
         public async Task<ActionResult> CheckOut()
@@ -86,7 +86,7 @@ namespace LeadAssignment.API.Controllers
         }
 
         /// <summary>
-        /// Giao thủ công khách hàng cho nhân viên tư vấn (Dành cho Admin)
+        /// Giao thủ công khách hàng cho nhân viên tư vấn (Admin)
         /// </summary>
         [HttpPost("manual-assign")]
         public async Task<ActionResult> ManualAssign([FromBody] ManualAssignCommand command)
@@ -103,7 +103,7 @@ namespace LeadAssignment.API.Controllers
 
 
         /// <summary>
-        /// Xem báo cáo thống kê hiệu suất chăm sóc khách hàng
+        /// Xem báo cáo thống kê hiệu suất chăm sóc khách hàng (Admin)
         /// </summary>
         [HttpGet("report")]
         public async Task<ActionResult<List<AssignmentReportDto>>> GetReport([FromQuery] GetAssignmentReportQuery query)
@@ -114,7 +114,7 @@ namespace LeadAssignment.API.Controllers
         }
 
         /// <summary>
-        /// Xem lịch sử những ai đã chăm sóc khách hàng này
+        /// Xem lịch sử những ai đã chăm sóc khách hàng này (Admin)
         /// </summary>
         [HttpGet("history/{customerId}")]
         public async Task<ActionResult<List<CustomerAssignmentHistoryDto>>> GetAssignmentHistory(Guid customerId)
@@ -126,12 +126,32 @@ namespace LeadAssignment.API.Controllers
         }
 
         /// <summary>
-        /// Xem tình trạng queue giao khách
+        /// Xem tình trạng queue giao khách toàn hệ thống (Admin)
         /// </summary>
         [HttpGet("queue")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<List<QueueStatusDto>>> GetQueueStatus([FromQuery] TrainingSystem? trainingSystem)
         {
             var query = new GetQueueStatusQuery { TrainingSystem = trainingSystem };
+            var result = await _mediator.Send(query);
+            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
+            return Ok(result.Data);
+        }
+
+        /// <summary>
+        /// Xem tình trạng queue của cá nhân (Tư vấn viên)
+        /// </summary>
+        [HttpGet("queue/me")]
+        public async Task<ActionResult<List<QueueStatusDto>>> GetMyQueueStatus([FromQuery] TrainingSystem? trainingSystem)
+        {
+            if (_currentUserService.UserId == null)
+                return Unauthorized(new { message = "Không xác định được danh tính người dùng" });
+
+            var query = new GetQueueStatusQuery 
+            { 
+                TrainingSystem = trainingSystem,
+                ConsultantId = _currentUserService.UserId.Value
+            };
             var result = await _mediator.Send(query);
             if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
             return Ok(result.Data);

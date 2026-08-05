@@ -135,7 +135,7 @@ namespace LeadAssignment.Application.Assignments.Commands.AssignPendingLeads
 
                 var now = DateTime.UtcNow;
                 
-                var consultantNames = await _userGrpcClient.GetUserNamesAsync(activeConsultantIds, cancellationToken);
+                var consultantNames = await _userGrpcClient.GetUserFullNamesAsync(activeConsultantIds, cancellationToken);
 
                 int assignedCount = 0;
 

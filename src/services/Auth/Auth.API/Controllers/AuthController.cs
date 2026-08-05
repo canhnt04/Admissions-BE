@@ -55,7 +55,18 @@ namespace Auth.API.Controllers
         }
 
         /// <summary>
-        /// Cấp quyền (Role) và Đội nhóm (Team) cho người dùng (Dành cho Admin)
+        /// Lấy danh sách toàn bộ RoleTeam (Admin)
+        /// </summary>
+        [HttpGet("teams")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<List<TeamDto>>> GetTeams()
+        {
+            var response = await _mediator.Send(new GetTeamsQuery());
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Cấp quyền Role or RoleTeam (Admin)
         /// </summary>
         [HttpPost("assign-user")]
         [Authorize(Roles = "Admin")]
@@ -66,7 +77,7 @@ namespace Auth.API.Controllers
         }
 
         /// <summary>
-        /// Gỡ người dùng khỏi đội nhóm hiện tại (Dành cho Admin)
+        /// Gỡ người dùng khỏi RoleTeam (Admin)
         /// </summary>
         [HttpPost("remove-team")]
         [Authorize(Roles = "Admin")]
@@ -77,7 +88,7 @@ namespace Auth.API.Controllers
         }
 
         /// <summary>
-        /// Lấy thông tin cá nhân của người dùng đang đăng nhập
+        /// Lấy thông tin cá nhân của người dùng đang đăng nhập 
         /// </summary>
         [HttpGet("profile")]
         public async Task<ActionResult<UserDto>> GetProfile()
@@ -102,22 +113,12 @@ namespace Auth.API.Controllers
         }
 
         /// <summary>
-        /// Lấy thông tin người dùng theo ID
+        /// Lấy thông tin người dùng theo ID 
         /// </summary>
         [HttpGet("users/{id:guid}")]
         public async Task<ActionResult<UserDto>> GetUserById(Guid id)
         {
             var response = await _mediator.Send(new GetUserByIdQuery { UserId = id });
-            return Ok(response);
-        }
-
-        /// <summary>
-        /// Lấy danh sách toàn bộ đội nhóm (Teams)
-        /// </summary>
-        [HttpGet("teams")]
-        public async Task<ActionResult<List<TeamDto>>> GetTeams()
-        {
-            var response = await _mediator.Send(new GetTeamsQuery());
             return Ok(response);
         }
     }

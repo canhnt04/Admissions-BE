@@ -7,6 +7,6 @@ namespace LeadAssignment.Application.Common.Interfaces
 {
     public interface IUserGrpcClient
     {
-        Task<Dictionary<Guid, string>> GetUserNamesAsync(IEnumerable<Guid> userIds, CancellationToken cancellationToken = default);
+        Task<Dictionary<Guid, string>> GetUserFullNamesAsync(IEnumerable<Guid> userIds, CancellationToken cancellationToken = default);
     }
 }

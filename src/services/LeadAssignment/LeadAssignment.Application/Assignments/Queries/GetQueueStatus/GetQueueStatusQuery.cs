@@ -12,6 +12,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetQueueStatus
     public class GetQueueStatusQuery : IRequest<Result<List<QueueStatusDto>>>
     {
         public TrainingSystem? TrainingSystem { get; set; }
+        public Guid? ConsultantId { get; set; }
     }
 
     public class QueueStatusDto
@@ -48,23 +49,33 @@ namespace LeadAssignment.Application.Assignments.Queries.GetQueueStatus
 
         public async Task<Result<List<QueueStatusDto>>> Handle(GetQueueStatusQuery request, CancellationToken cancellationToken)
         {
-            // Retrieve active consultants from AuditLog
-            var tenDaysAgo = DateTime.UtcNow.AddDays(-10);
-            var activeLogs = await _auditLogRepository.Query()
-                .Where(a => a.RecordEntity == RecordEntity.User && 
-                       a.Action == LeadAssignment.Domain.Enums.Action.Update &&
-                       (a.Detail.Contains("CHECK_IN") || a.Detail.Contains("CHECK_OUT")) &&
-                       a.CreationDate > tenDaysAgo)
-                .GroupBy(a => a.UserId)
-                .Select(g => g.OrderByDescending(x => x.CreationDate).FirstOrDefault())
-                .ToListAsync(cancellationToken);
+            List<Guid> activeConsultantIds;
 
-            var activeConsultantIds = activeLogs
-                .Where(l => l != null && l.Detail.Contains("CHECK_IN"))
-                .Select(l => l.UserId)
-                .ToList();
+            if (request.ConsultantId.HasValue)
+            {
+                // Only get for the specific consultant
+                activeConsultantIds = new List<Guid> { request.ConsultantId.Value };
+            }
+            else
+            {
+                // Retrieve all active consultants from AuditLog
+                var tenDaysAgo = DateTime.UtcNow.AddDays(-10);
+                var activeLogs = await _auditLogRepository.Query()
+                    .Where(a => a.RecordEntity == RecordEntity.User && 
+                           a.Action == LeadAssignment.Domain.Enums.Action.Update &&
+                           (a.Detail.Contains("CHECK_IN") || a.Detail.Contains("CHECK_OUT")) &&
+                           a.CreationDate > tenDaysAgo)
+                    .GroupBy(a => a.UserId)
+                    .Select(g => g.OrderByDescending(x => x.CreationDate).FirstOrDefault())
+                    .ToListAsync(cancellationToken);
+
+                activeConsultantIds = activeLogs
+                    .Where(l => l != null && l.Detail.Contains("CHECK_IN"))
+                    .Select(l => l.UserId)
+                    .ToList();
+            }
                 
-            var userNames = await _userGrpcClient.GetUserNamesAsync(activeConsultantIds, cancellationToken);
+            var fullNames = await _userGrpcClient.GetUserFullNamesAsync(activeConsultantIds, cancellationToken);
             
             var result = new List<QueueStatusDto>();
             
@@ -91,11 +102,11 @@ namespace LeadAssignment.Application.Assignments.Queries.GetQueueStatus
                     Id = Guid.NewGuid(),
                     TrainingSystem = request.TrainingSystem?.ToString() ?? "All",
                     ConsultantId = cid,
-                    ConsultantName = userNames[cid],
+                    ConsultantName = fullNames[cid],
                     OrderIndex = 0,
                     CurrentLoad = currentLoad,
                     MaxLoad = 10,
-                    IsActive = true,
+                    IsActive = true, 
                     LastAssignedAt = lastAssignment?.AssignmentDate
                 });
             }

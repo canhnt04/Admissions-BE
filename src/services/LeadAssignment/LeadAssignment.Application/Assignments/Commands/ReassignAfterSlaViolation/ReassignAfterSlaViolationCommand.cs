@@ -183,9 +183,9 @@ namespace LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolat
             }
 
             // Resolve tên NV mới qua gRPC (batch call)
-            var resolvedNames = await _userGrpcClient.GetUserNamesAsync(
+            var resolvedFullNames = await _userGrpcClient.GetUserFullNamesAsync(
                 new[] { nextAssigneeId.Value }, cancellationToken);
-            var newConsultantName = resolvedNames[nextAssigneeId.Value];
+            var newConsultantName = resolvedFullNames[nextAssigneeId.Value];
 
             if (isEscalatedStrike)
             {
@@ -199,8 +199,8 @@ namespace LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolat
             {
                 // Resolve names of violating consultants for notification
                 var violatingAssigneeIds = pastAssignments.Select(x => x.AssigneeId).Distinct().ToList();
-                var violatingUserNames = await _userGrpcClient.GetUserNamesAsync(violatingAssigneeIds, cancellationToken);
-                var namesStr = string.Join(", ", violatingAssigneeIds.Select(id => violatingUserNames[id]));
+                var violatingFullNames = await _userGrpcClient.GetUserFullNamesAsync(violatingAssigneeIds, cancellationToken);
+                var namesStr = string.Join(", ", violatingAssigneeIds.Select(id => violatingfullNames[id]));
 
                 await _emailSender.SendEmailAsync(
                     $"{nextAssigneeId.Value}@system.local",

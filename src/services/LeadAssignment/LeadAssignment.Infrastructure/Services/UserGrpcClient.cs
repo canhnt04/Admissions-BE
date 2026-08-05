@@ -18,7 +18,7 @@ namespace LeadAssignment.Infrastructure.Services
             _client = client;
         }
 
-        public async Task<Dictionary<Guid, string>> GetUserNamesAsync(IEnumerable<Guid> userIds, CancellationToken cancellationToken = default)
+        public async Task<Dictionary<Guid, string>> GetUserFullNamesAsync(IEnumerable<Guid> userIds, CancellationToken cancellationToken = default)
         {
             var distinctIds = userIds.Distinct().Select(id => id.ToString()).ToList();
             if (!distinctIds.Any())

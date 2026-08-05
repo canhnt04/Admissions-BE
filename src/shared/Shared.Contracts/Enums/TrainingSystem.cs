@@ -1,6 +1,9 @@
 using System.ComponentModel;
+using Shared.Contracts.Converters;
+
 namespace Shared.Contracts.Enums 
 { 
+    [TypeConverter(typeof(EnumDescriptionTypeConverter<TrainingSystem>))]
     public enum TrainingSystem 
     { 
         [Description("Sơ cấp")] ShortTerm = 1, 
