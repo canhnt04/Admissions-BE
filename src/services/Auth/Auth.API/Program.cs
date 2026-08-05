@@ -19,11 +19,16 @@ builder.Services.AddAuthInfrastructure(builder.Configuration);
 builder.Services.AddAuthApplication();
 builder.Services.AddCurrentUserService();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new Shared.Common.Converters.EnumDescriptionJsonConverterFactory());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddGrpc();
 builder.Services.AddSwaggerGen(options =>
 {
+    options.SchemaFilter<Shared.Common.Swagger.EnumDescriptionSchemaFilter>();
     options.SwaggerDoc("v1", new() { Title = "CRM Admissions — Auth API", Version = "v1" });
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {

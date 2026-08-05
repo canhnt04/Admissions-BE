@@ -8,6 +8,7 @@ using Auth.Application.Features.Authentication.Queries;
 using Auth.Application.Features.Authentication.Queries.GetProfile;
 using Auth.Application.Features.Authentication.Queries.GetUserById;
 using Auth.Application.Features.Authentication.Queries.GetUsers;
+using Auth.Application.Features.Authentication.Queries.GetTeams;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -107,6 +108,16 @@ namespace Auth.API.Controllers
         public async Task<ActionResult<UserDto>> GetUserById(Guid id)
         {
             var response = await _mediator.Send(new GetUserByIdQuery { UserId = id });
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Lấy danh sách toàn bộ đội nhóm (Teams)
+        /// </summary>
+        [HttpGet("teams")]
+        public async Task<ActionResult<List<TeamDto>>> GetTeams()
+        {
+            var response = await _mediator.Send(new GetTeamsQuery());
             return Ok(response);
         }
     }

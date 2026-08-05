@@ -9,9 +9,16 @@ using MassTransit;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new Shared.Common.Converters.EnumDescriptionJsonConverterFactory());
+    });
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c => 
+{
+    c.SchemaFilter<Shared.Common.Swagger.EnumDescriptionSchemaFilter>();
+});
 
 // Setup layers
 builder.Services.AddCustomerApplication();

@@ -19,10 +19,15 @@ builder.Services.AddCustomSecurity(builder.Configuration);
 builder.Services.AddCurrentUserService();
 
 // Add Controllers and Swagger
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new Shared.Common.Converters.EnumDescriptionJsonConverterFactory());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
+    c.SchemaFilter<Shared.Common.Swagger.EnumDescriptionSchemaFilter>();
     c.SwaggerDoc("v1", new() { Title = "CRM Admissions — LeadAssignment API", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
