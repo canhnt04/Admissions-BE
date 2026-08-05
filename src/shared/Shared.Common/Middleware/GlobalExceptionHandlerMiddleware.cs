@@ -26,7 +26,23 @@ public class GlobalExceptionHandlerMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unhandled exception occurred: {Message}", ex.Message);
+            bool isControlledException = ex is ValidationException || 
+                                         ex is UnauthorizedException || 
+                                         ex is ForbiddenException || 
+                                         ex is NotFoundException || 
+                                         ex is ConflictException || 
+                                         ex is BusinessException || 
+                                         ex is CustomException;
+
+            if (isControlledException)
+            {
+                _logger.LogWarning("Controlled exception: {ExceptionType} - {Message}", ex.GetType().Name, ex.Message);
+            }
+            else
+            {
+                _logger.LogError(ex, "An unhandled exception occurred: {Message}", ex.Message);
+            }
+            
             await HandleExceptionAsync(context, ex);
         }
     }

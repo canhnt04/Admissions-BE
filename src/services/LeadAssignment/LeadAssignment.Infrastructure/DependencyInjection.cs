@@ -28,16 +28,14 @@ namespace LeadAssignment.Infrastructure
             services.AddScoped<IAssignmentDbContext>(provider => provider.GetRequiredService<AssignmentDbContext>());
 
             // ── Repositories ─────────────────────────────────────────────
-            services.AddScoped<IAssignmentQueueRepository, AssignmentQueueRepository>();
             services.AddScoped<ICustomerCareStatusRepository, CustomerCareStatusRepository>();
             services.AddScoped<ICustomerAssignmentHistoryRepository, CustomerAssignmentHistoryRepository>();
             services.AddScoped<IAuditLogRepository, AuditLogRepository>();
-            services.AddScoped<ISystemConfigRepository, SystemConfigRepository>();
-            services.AddScoped<IContactEvidenceRepository, ContactEvidenceRepository>();
-            services.AddScoped<INotificationRepository, NotificationRepository>();
 
-            services.AddScoped<INotificationService, NotificationService>();
-            services.AddScoped<IEmailSender, DevEmailSender>();
+
+            services.Configure<LeadAssignment.Infrastructure.Configuration.EmailSettings>(configuration.GetSection("EmailSettings"));
+            services.Configure<LeadAssignment.Application.Common.Models.SlaSettings>(configuration.GetSection("SlaSettings"));
+            services.AddScoped<IEmailSender, SmtpEmailSender>();
 
             var authServiceUrl = configuration["GrpcConfig:AuthServiceUrl"] ?? "http://auth-api:8080";
             services.AddGrpcClient<Shared.Protos.Users.UserService.UserServiceClient>(o =>

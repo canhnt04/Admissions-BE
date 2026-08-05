@@ -22,9 +22,7 @@ namespace Formal.Application.Common.Interfaces
         DbSet<CourseParticipant> CourseParticipants { get; set; }
         DbSet<CourseParticipantPayment> CourseParticipantPayments { get; set; }
         DbSet<AuditLog> AuditLogs { get; set; }
-        DbSet<CustomTag> CustomTags { get; set; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }
-

@@ -35,6 +35,9 @@ namespace Shared.Authentication.Services
 
         public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
 
+        public string? RoleTeam => _httpContextAccessor.HttpContext?.User?.FindFirstValue("RoleTeam") 
+            ?? _httpContextAccessor.HttpContext?.User?.Claims.FirstOrDefault(c => c.Type == "RoleTeam")?.Value;
+
         public bool IsInRole(string role)
         {
             return _httpContextAccessor.HttpContext?.User?.IsInRole(role) ?? false;

@@ -22,46 +22,6 @@ namespace LeadAssignment.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("LeadAssignment.Domain.Entities.AssignmentQueue", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ConsultantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("CurrentLoad")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("LastAssignedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("MaxLoad")
-                        .HasColumnType("int");
-
-                    b.Property<int>("OrderIndex")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("TrainingSystem")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TrainingSystem", "ConsultantId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_AssignmentQueue_TrainingSystem_Consultant_Unique")
-                        .HasFilter("[TrainingSystem] IS NOT NULL");
-
-                    b.HasIndex("TrainingSystem", "IsActive")
-                        .HasDatabaseName("IX_AssignmentQueue_TrainingSystem_Active");
-
-                    b.ToTable("AssignmentQueues");
-                });
-
             modelBuilder.Entity("LeadAssignment.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -97,72 +57,6 @@ namespace LeadAssignment.Infrastructure.Migrations
                     b.ToTable("AuditLogs");
                 });
 
-            modelBuilder.Entity("LeadAssignment.Domain.Entities.ContactEvidence", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ConsultantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("CustomerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int?>("DurationSeconds")
-                        .HasColumnType("int");
-
-                    b.Property<string>("FileUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int?>("FollowStatus")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("LeadStatus")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CustomerId", "ConsultantId", "CreatedAt")
-                        .HasDatabaseName("IX_ContactEvidence_Customer_Consultant_Date");
-
-                    b.ToTable("ContactEvidences");
-                });
-
-            modelBuilder.Entity("LeadAssignment.Domain.Entities.CustomTag", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int?>("TrainingSystem")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("CustomTags");
-                });
-
             modelBuilder.Entity("LeadAssignment.Domain.Entities.CustomerAssignmentHistory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -181,12 +75,6 @@ namespace LeadAssignment.Infrastructure.Migrations
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Note")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Reason")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerId", "AssignmentDate")
@@ -201,10 +89,7 @@ namespace LeadAssignment.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("AssignedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("AssigneeId")
+                    b.Property<Guid?>("AssigneeId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("CustomerId")
@@ -214,26 +99,20 @@ namespace LeadAssignment.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("Deadline")
+                    b.Property<int?>("FollowStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ReportDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("FirstContactAt")
+                    b.Property<int?>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StatusDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsContactMade")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsReassigned")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsViolated")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ReassignedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("ReassignedToId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int?>("TrainingSystem")
                         .HasColumnType("int");
@@ -241,69 +120,6 @@ namespace LeadAssignment.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("CustomerCareStatuses");
-                });
-
-            modelBuilder.Entity("LeadAssignment.Domain.Entities.Notification", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime?>("ReadAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("RecipientId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ReferenceId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RecipientId", "IsRead", "CreatedAt")
-                        .HasDatabaseName("IX_Notification_Recipient_Read_Date");
-
-                    b.ToTable("Notifications");
-                });
-
-            modelBuilder.Entity("LeadAssignment.Domain.Entities.SystemConfig", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SystemConfigs");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.InboxState", b =>

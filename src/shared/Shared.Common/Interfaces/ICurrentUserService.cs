@@ -8,6 +8,7 @@ namespace Shared.Common.Interfaces
         Guid? UserId { get; }
         string? Email { get; }
         IReadOnlyCollection<string> Roles { get; }
+        string? RoleTeam { get; }
         bool IsAuthenticated { get; }
         bool IsInRole(string role);
     }

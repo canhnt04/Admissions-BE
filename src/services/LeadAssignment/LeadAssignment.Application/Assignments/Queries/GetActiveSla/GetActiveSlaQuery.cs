@@ -21,7 +21,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
         public string CustomerName { get; set; } = string.Empty;
         public string TrainingSystem { get; set; } = string.Empty;
         public Guid AssigneeId { get; set; }
-        public string AssigneeName { get; set; } = "Unknown";
+        public string AssigneeName { get; set; } = string.Empty;
         public DateTime AssignedAt { get; set; }
         public DateTime Deadline { get; set; }
         public int RemainingMinutes { get; set; }
@@ -42,23 +42,21 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
         public async Task<Result<List<ActiveSlaDto>>> Handle(GetActiveSlaQuery request, CancellationToken cancellationToken)
         {
             var query = _context.CustomerCareStatuses
-                .Where(s => !s.IsContactMade && !s.IsReassigned);
+                .Where(s => s.AssigneeId != null && s.Status == null);
 
             if (request.TrainingSystem.HasValue)
                 query = query.Where(s => s.TrainingSystem == request.TrainingSystem.Value);
 
             var rawSlaList = await query
-                .OrderBy(s => s.Deadline)
+                .OrderBy(s => s.StatusDate)
                 .Select(s => new
                 {
                     s.Id,
                     s.CustomerId,
                     s.CustomerName,
                     s.TrainingSystem,
-                    s.AssigneeId,
-                    s.AssignedAt,
-                    s.Deadline,
-                    s.IsViolated,
+                    AssigneeId = s.AssigneeId.Value,
+                    StatusDate = s.StatusDate
                 })
                 .ToListAsync(cancellationToken);
 
@@ -66,6 +64,8 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
             var userNames = await _userGrpcClient.GetUserNamesAsync(assigneeIds, cancellationToken);
 
             var now = DateTime.UtcNow;
+            var slaThreshold = now.AddMinutes(-30);
+            
             var result = rawSlaList.Select(s => new ActiveSlaDto
             {
                 Id = s.Id,
@@ -73,11 +73,11 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
                 CustomerName = s.CustomerName,
                 TrainingSystem = s.TrainingSystem.ToString() ?? string.Empty,
                 AssigneeId = s.AssigneeId,
-                AssigneeName = userNames.GetValueOrDefault(s.AssigneeId, "Unknown"),
-                AssignedAt = s.AssignedAt,
-                Deadline = s.Deadline,
-                RemainingMinutes = (int)(s.Deadline - now).TotalMinutes,
-                IsViolated = s.IsViolated,
+                AssigneeName = userNames[s.AssigneeId],
+                AssignedAt = s.StatusDate ?? now,
+                Deadline = (s.StatusDate ?? now).AddMinutes(30),
+                RemainingMinutes = (int)((s.StatusDate ?? now).AddMinutes(30) - now).TotalMinutes,
+                IsViolated = s.StatusDate < slaThreshold,
             }).ToList();
 
             return Result<List<ActiveSlaDto>>.Success(result);

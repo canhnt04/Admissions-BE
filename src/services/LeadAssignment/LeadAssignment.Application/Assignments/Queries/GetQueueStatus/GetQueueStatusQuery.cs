@@ -19,7 +19,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetQueueStatus
         public Guid Id { get; set; }
         public string TrainingSystem { get; set; } = string.Empty;
         public Guid ConsultantId { get; set; }
-        public string ConsultantName { get; set; } = "Unknown";
+        public string ConsultantName { get; set; } = string.Empty;
         public int OrderIndex { get; set; }
         public int CurrentLoad { get; set; }
         public int MaxLoad { get; set; }
@@ -29,53 +29,76 @@ namespace LeadAssignment.Application.Assignments.Queries.GetQueueStatus
 
     public class GetQueueStatusQueryHandler : IRequestHandler<GetQueueStatusQuery, Result<List<QueueStatusDto>>>
     {
-        private readonly IAssignmentDbContext _context;
+        private readonly IAuditLogRepository _auditLogRepository;
+        private readonly ICustomerCareStatusRepository _customerCareStatusRepository;
+        private readonly ICustomerAssignmentHistoryRepository _customerAssignmentHistoryRepository;
         private readonly IUserGrpcClient _userGrpcClient;
 
-        public GetQueueStatusQueryHandler(IAssignmentDbContext context, IUserGrpcClient userGrpcClient)
+        public GetQueueStatusQueryHandler(
+            IAuditLogRepository auditLogRepository, 
+            ICustomerCareStatusRepository customerCareStatusRepository,
+            ICustomerAssignmentHistoryRepository customerAssignmentHistoryRepository,
+            IUserGrpcClient userGrpcClient)
         {
-            _context = context;
+            _auditLogRepository = auditLogRepository;
+            _customerCareStatusRepository = customerCareStatusRepository;
+            _customerAssignmentHistoryRepository = customerAssignmentHistoryRepository;
             _userGrpcClient = userGrpcClient;
         }
 
         public async Task<Result<List<QueueStatusDto>>> Handle(GetQueueStatusQuery request, CancellationToken cancellationToken)
         {
-            var query = _context.AssignmentQueues.AsQueryable();
-
-            if (request.TrainingSystem.HasValue)
-                query = query.Where(q => q.TrainingSystem == request.TrainingSystem.Value);
-
-            var rawQueue = await query
-                .OrderBy(q => q.TrainingSystem)
-                .ThenBy(q => q.OrderIndex)
-                .Select(q => new
-                {
-                    q.Id,
-                    q.TrainingSystem,
-                    q.ConsultantId,
-                    q.OrderIndex,
-                    q.CurrentLoad,
-                    q.MaxLoad,
-                    q.IsActive,
-                    q.LastAssignedAt,
-                })
+            // Retrieve active consultants from AuditLog
+            var tenDaysAgo = DateTime.UtcNow.AddDays(-10);
+            var activeLogs = await _auditLogRepository.Query()
+                .Where(a => a.RecordEntity == RecordEntity.User && 
+                       a.Action == LeadAssignment.Domain.Enums.Action.Update &&
+                       (a.Detail.Contains("CHECK_IN") || a.Detail.Contains("CHECK_OUT")) &&
+                       a.CreationDate > tenDaysAgo)
+                .GroupBy(a => a.UserId)
+                .Select(g => g.OrderByDescending(x => x.CreationDate).FirstOrDefault())
                 .ToListAsync(cancellationToken);
 
-            var consultantIds = rawQueue.Select(q => q.ConsultantId).Distinct().ToList();
-            var userNames = await _userGrpcClient.GetUserNamesAsync(consultantIds, cancellationToken);
-
-            var result = rawQueue.Select(q => new QueueStatusDto
+            var activeConsultantIds = activeLogs
+                .Where(l => l != null && l.Detail.Contains("CHECK_IN"))
+                .Select(l => l.UserId)
+                .ToList();
+                
+            var userNames = await _userGrpcClient.GetUserNamesAsync(activeConsultantIds, cancellationToken);
+            
+            var result = new List<QueueStatusDto>();
+            
+            // For each active consultant, calculate their current load
+            foreach (var cid in activeConsultantIds)
             {
-                Id = q.Id,
-                TrainingSystem = q.TrainingSystem.ToString() ?? string.Empty,
-                ConsultantId = q.ConsultantId,
-                ConsultantName = userNames.GetValueOrDefault(q.ConsultantId, "Unknown"),
-                OrderIndex = q.OrderIndex,
-                CurrentLoad = q.CurrentLoad,
-                MaxLoad = q.MaxLoad,
-                IsActive = q.IsActive,
-                LastAssignedAt = q.LastAssignedAt,
-            }).ToList();
+                var query = _customerCareStatusRepository.Query()
+                    .Where(c => c.AssigneeId == cid && c.Status == LeadStatus.New);
+                    
+                if (request.TrainingSystem.HasValue)
+                {
+                    query = query.Where(c => c.TrainingSystem == request.TrainingSystem.Value);
+                }
+                
+                var currentLoad = await query.CountAsync(cancellationToken);
+                
+                var lastAssignment = await _customerAssignmentHistoryRepository.Query()
+                    .Where(h => h.AssigneeId == cid)
+                    .OrderByDescending(h => h.AssignmentDate)
+                    .FirstOrDefaultAsync(cancellationToken);
+                    
+                result.Add(new QueueStatusDto
+                {
+                    Id = Guid.NewGuid(),
+                    TrainingSystem = request.TrainingSystem?.ToString() ?? "All",
+                    ConsultantId = cid,
+                    ConsultantName = userNames[cid],
+                    OrderIndex = 0,
+                    CurrentLoad = currentLoad,
+                    MaxLoad = 10,
+                    IsActive = true,
+                    LastAssignedAt = lastAssignment?.AssignmentDate
+                });
+            }
 
             return Result<List<QueueStatusDto>>.Success(result);
         }

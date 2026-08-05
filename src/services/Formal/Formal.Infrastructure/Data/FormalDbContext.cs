@@ -26,7 +26,6 @@ namespace Formal.Infrastructure.Data
         public DbSet<CourseParticipant> CourseParticipants { get; set; }
         public DbSet<CourseParticipantPayment> CourseParticipantPayments { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
-        public DbSet<CustomTag> CustomTags { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

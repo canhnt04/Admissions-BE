@@ -26,23 +26,26 @@ namespace LeadAssignment.Application.Assignments.Queries.GetAssignmentReport
 
         public async Task<Result<List<AssignmentReportDto>>> Handle(GetAssignmentReportQuery request, CancellationToken cancellationToken)
         {
-            var query = _context.CustomerCareStatuses.AsQueryable();
+            var query = _context.CustomerCareStatuses.Where(x => x.AssigneeId != null).AsQueryable();
 
             if (request.FromDate.HasValue)
-                query = query.Where(x => x.AssignedAt >= request.FromDate.Value);
+                query = query.Where(x => x.StatusDate >= request.FromDate.Value);
 
             if (request.ToDate.HasValue)
-                query = query.Where(x => x.AssignedAt <= request.ToDate.Value);
+                query = query.Where(x => x.StatusDate <= request.ToDate.Value);
+
+            // TODO: Fetch from config if needed. Using 30 mins as default
+            var slaThreshold = System.DateTime.UtcNow.AddMinutes(-30);
 
             var grouped = await query
                 .GroupBy(x => x.AssigneeId)
                 .Select(g => new
                 {
-                    ConsultantId = g.Key,
+                    ConsultantId = g.Key!.Value,
                     TotalAssigned = g.Count(),
-                    SlaFulfilled = g.Count(x => x.IsContactMade),
-                    SlaViolated = g.Count(x => x.IsViolated),
-                    Pending = g.Count(x => !x.IsContactMade && !x.IsViolated && !x.IsReassigned)
+                    SlaFulfilled = g.Count(x => x.Status != LeadStatus.New),
+                    SlaViolated = g.Count(x => x.Status == LeadStatus.New && x.StatusDate < slaThreshold),
+                    Pending = g.Count(x => x.Status == LeadStatus.New && x.StatusDate >= slaThreshold)
                 })
                 .ToListAsync(cancellationToken);
 
@@ -53,7 +56,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetAssignmentReport
             var report = grouped.Select(g => new AssignmentReportDto
             {
                 ConsultantId = g.ConsultantId,
-                ConsultantName = userNames.GetValueOrDefault(g.ConsultantId, "Unknown"),
+                ConsultantName = userNames[g.ConsultantId],
                 TotalAssigned = g.TotalAssigned,
                 SlaFulfilled = g.SlaFulfilled,
                 SlaViolated = g.SlaViolated,

@@ -21,64 +21,58 @@ namespace LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolat
     public class ReassignAfterSlaViolationCommandHandler : IRequestHandler<ReassignAfterSlaViolationCommand, Result<Guid?>>
     {
         private readonly ICustomerCareStatusRepository _customerCareStatusRepository;
-        private readonly IAssignmentQueueRepository _assignmentQueueRepository;
+
         private readonly ICustomerAssignmentHistoryRepository _customerAssignmentHistoryRepository;
-        private readonly ISystemConfigRepository _systemConfigRepository;
+        private readonly Microsoft.Extensions.Options.IOptions<LeadAssignment.Application.Common.Models.SlaSettings> _slaSettings;
         private readonly IAuditLogRepository _auditLogRepository;
         private readonly IAssignmentDbContext _context;
         private readonly IPublishEndpoint _publishEndpoint;
-        private readonly INotificationService _notificationService;
+
         private readonly IEmailSender _emailSender;
         private readonly IUserGrpcClient _userGrpcClient;
         private readonly ILogger<ReassignAfterSlaViolationCommandHandler> _logger;
 
-        private const int DEFAULT_SLA_DEADLINE_MINUTES = 30;
-
         public ReassignAfterSlaViolationCommandHandler(
             ICustomerCareStatusRepository customerCareStatusRepository,
-            IAssignmentQueueRepository assignmentQueueRepository,
             ICustomerAssignmentHistoryRepository customerAssignmentHistoryRepository,
-            ISystemConfigRepository systemConfigRepository,
+            Microsoft.Extensions.Options.IOptions<LeadAssignment.Application.Common.Models.SlaSettings> slaSettings,
             IAuditLogRepository auditLogRepository,
             IAssignmentDbContext context,
             IPublishEndpoint publishEndpoint,
-            INotificationService notificationService,
             IEmailSender emailSender,
             IUserGrpcClient userGrpcClient,
             ILogger<ReassignAfterSlaViolationCommandHandler> logger)
         {
             _customerCareStatusRepository = customerCareStatusRepository;
-            _assignmentQueueRepository = assignmentQueueRepository;
             _customerAssignmentHistoryRepository = customerAssignmentHistoryRepository;
-            _systemConfigRepository = systemConfigRepository;
+            _slaSettings = slaSettings;
             _auditLogRepository = auditLogRepository;
             _context = context;
             _publishEndpoint = publishEndpoint;
-            _notificationService = notificationService;
             _emailSender = emailSender;
             _userGrpcClient = userGrpcClient;
             _logger = logger;
         }
 
-        private async Task<int> GetSlaDeadlineMinutesAsync(CancellationToken cancellationToken)
+        private Task<int> GetSlaDeadlineMinutesAsync(CancellationToken cancellationToken, bool isAdmin = false)
         {
-            var config = await _systemConfigRepository.FirstOrDefaultAsync(x => x.Id == "SlaDeadlineMinutes", cancellationToken);
-            if (config != null && int.TryParse(config.Value, out var mins)) return mins;
-            return DEFAULT_SLA_DEADLINE_MINUTES;
+            return Task.FromResult(isAdmin ? _slaSettings.Value.AdminSlaDeadlineMinutes : _slaSettings.Value.SlaDeadlineMinutes);
         }
 
-        private async Task<Guid?> GetDefaultManagerIdAsync(CancellationToken cancellationToken)
+        private Task<Guid?> GetManagerIdAsync(TrainingSystem? trainingSystem, CancellationToken cancellationToken)
         {
-            var config = await _systemConfigRepository.FirstOrDefaultAsync(x => x.Id == "DefaultManagerId", cancellationToken);
-            if (config != null && Guid.TryParse(config.Value, out var managerId)) return managerId;
-            return null;
+            if (trainingSystem.HasValue && _slaSettings.Value.Managers.TryGetValue(trainingSystem.Value.ToString(), out var managerId) && managerId != Guid.Empty)
+            {
+                return Task.FromResult<Guid?>(managerId);
+            }
+            return Task.FromResult<Guid?>(_slaSettings.Value.DefaultManagerId != Guid.Empty ? _slaSettings.Value.DefaultManagerId : null);
         }
 
         public async Task<Result<Guid?>> Handle(ReassignAfterSlaViolationCommand request, CancellationToken cancellationToken)
         {
             var latestStatus = await _customerCareStatusRepository.Query()
                 .Where(s => s.CustomerId == request.CustomerId && s.AssigneeId == request.ViolatedAssigneeId)
-                .OrderByDescending(s => s.AssignedAt)
+                .OrderByDescending(s => s.StatusDate)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (latestStatus == null) return Result<Guid?>.Success(null);
@@ -87,73 +81,145 @@ namespace LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolat
             var trainingSystem = latestStatus.TrainingSystem;
             var now = DateTime.UtcNow;
 
-            var violatedQueue = await _assignmentQueueRepository.GetByConsultantAndSystemAsync(request.ViolatedAssigneeId, trainingSystem, cancellationToken);
-            if (violatedQueue != null && violatedQueue.CurrentLoad > 0)
-            {
-                violatedQueue.CurrentLoad -= 1;
-                _assignmentQueueRepository.Update(violatedQueue);
-            }
 
-            // Đếm số lần vi phạm SLA cho customer này
-            var reassignmentCount = await _customerCareStatusRepository.CountSlaViolationsAsync(request.CustomerId, cancellationToken);
 
-            var isThreeStrikes = reassignmentCount >= 3;
+            // Đếm số lần khách hàng này đã được giao cho các nhân viên
+            var pastAssignments = await _customerAssignmentHistoryRepository.Query()
+                .Where(h => h.CustomerId == request.CustomerId)
+                .OrderBy(h => h.AssignmentDate)
+                .ToListAsync(cancellationToken);
+            
+            var assignmentCount = pastAssignments.Count;
+            var isThreeStrikes = assignmentCount == 3;
+            var isEscalatedStrike = assignmentCount >= 4;
 
             Guid? nextAssigneeId = null;
 
-            if (isThreeStrikes)
+            if (isEscalatedStrike)
             {
-                var managerId = await GetDefaultManagerIdAsync(cancellationToken);
+                // Level 2 Fallback: Manager also missed SLA. We just reset the timer and notify them, or keep them as assignee.
+                _logger.LogWarning("Khách hàng {CustomerId} vi phạm SLA level 2 (Manager missed). Sẽ cảnh báo lại cho Manager {ViolatedAssigneeId}.", request.CustomerId, request.ViolatedAssigneeId);
+                nextAssigneeId = request.ViolatedAssigneeId; // Keep it with the manager
+            }
+            else if (isThreeStrikes)
+            {
+                var managerId = await GetManagerIdAsync(trainingSystem, cancellationToken);
                 if (managerId.HasValue)
                 {
                     nextAssigneeId = managerId.Value;
+                    
+                    // Pause routing for violating consultants by logging CHECK_OUT event
+                    var pastAssigneeIds = pastAssignments.Select(x => x.AssigneeId).Distinct().ToList();
+                    
+                    foreach(var cid in pastAssigneeIds)
+                    {
+                        _auditLogRepository.Add(new AuditLog
+                        {
+                            Id = Guid.NewGuid(),
+                            Action = LeadAssignment.Domain.Enums.Action.Update,
+                            Detail = $"[CHECK_OUT] Tạm ngưng chia lead do vi phạm SLA 3 lần liên tiếp với khách hàng [{customerName}]",
+                            RecordId = cid,
+                            RecordDesc = cid.ToString(),
+                            RecordEntity = RecordEntity.User,
+                            CreationDate = now,
+                            UserId = Guid.Empty, // System
+                        });
+                    }
                 }
                 else
                 {
                     _logger.LogWarning(
-                        "Khách hàng {CustomerId} vi phạm SLA 3 lần nhưng chưa cấu hình DefaultManagerId. Sẽ tiếp tục vòng lặp Round-Robin.",
+                        "Khách hàng {CustomerId} vi phạm SLA 3 lần nhưng chưa cấu hình Manager. Sẽ tiếp tục vòng lặp Round-Robin.",
                         request.CustomerId);
                 }
             }
 
             if (nextAssigneeId == null)
             {
-                var nextConsultant = await _assignmentQueueRepository.GetNextInQueueAsync(trainingSystem, request.ViolatedAssigneeId, cancellationToken);
+                // Find next active consultant
+                var tenDaysAgo = DateTime.UtcNow.AddDays(-10);
+                var activeLogs = await _auditLogRepository.Query()
+                    .Where(a => a.RecordEntity == RecordEntity.User && 
+                           a.Action == LeadAssignment.Domain.Enums.Action.Update &&
+                           (a.Detail.Contains("CHECK_IN") || a.Detail.Contains("CHECK_OUT")) &&
+                           a.CreationDate > tenDaysAgo)
+                    .GroupBy(a => a.UserId)
+                    .Select(g => g.OrderByDescending(x => x.CreationDate).FirstOrDefault())
+                    .ToListAsync(cancellationToken);
 
-                if (nextConsultant == null)
+                var activeConsultantIds = activeLogs
+                    .Where(l => l != null && l.Detail.Contains("CHECK_IN") && l.UserId != request.ViolatedAssigneeId)
+                    .Select(l => l.UserId)
+                    .ToList();
+
+                if (!activeConsultantIds.Any())
                 {
                     _logger.LogWarning(
-                        "Không tìm được NV thay thế cho KH {CustomerId} sau SLA violation. KH chưa được giao lại.",
+                        "Không tìm được nhân viên active thay thế cho khách hàng {CustomerId}. Khách hàng chưa được giao lại.",
                         request.CustomerId);
                     return Result<Guid?>.Success(null);
                 }
 
-                nextAssigneeId = nextConsultant.ConsultantId;
-                nextConsultant.CurrentLoad += 1;
-                nextConsultant.LastAssignedAt = now;
-                _assignmentQueueRepository.Update(nextConsultant);
+                // Choose the one with oldest assignment date
+                Guid? chosenId = null;
+                DateTime oldestAssignment = DateTime.MaxValue;
+
+                foreach (var cid in activeConsultantIds)
+                {
+                    var lastAssignment = await _customerAssignmentHistoryRepository.Query()
+                        .Where(h => h.AssigneeId == cid)
+                        .OrderByDescending(h => h.AssignmentDate)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    var date = lastAssignment?.AssignmentDate ?? DateTime.MinValue;
+                    if (date < oldestAssignment)
+                    {
+                        oldestAssignment = date;
+                        chosenId = cid;
+                    }
+                }
+
+                nextAssigneeId = chosenId ?? activeConsultantIds.First();
             }
 
             // Resolve tên NV mới qua gRPC (batch call)
             var resolvedNames = await _userGrpcClient.GetUserNamesAsync(
                 new[] { nextAssigneeId.Value }, cancellationToken);
-            var newConsultantName = resolvedNames.GetValueOrDefault(nextAssigneeId.Value, "Unknown");
+            var newConsultantName = resolvedNames[nextAssigneeId.Value];
 
-            if (isThreeStrikes)
+            if (isEscalatedStrike)
             {
                 await _emailSender.SendEmailAsync(
                     $"{nextAssigneeId.Value}@system.local",
+                    "CẢNH BÁO ESCALATION CẤP CAO: Vi phạm SLA Quản lý",
+                    $"<p>Khách hàng {customerName} đang trong hàng đợi của Quản lý nhưng đã quá hạn SLA xử lý! Vui lòng liên hệ gấp.</p>",
+                    cancellationToken);
+            }
+            else if (isThreeStrikes)
+            {
+                // Resolve names of violating consultants for notification
+                var violatingAssigneeIds = pastAssignments.Select(x => x.AssigneeId).Distinct().ToList();
+                var violatingUserNames = await _userGrpcClient.GetUserNamesAsync(violatingAssigneeIds, cancellationToken);
+                var namesStr = string.Join(", ", violatingAssigneeIds.Select(id => violatingUserNames[id]));
+
+                await _emailSender.SendEmailAsync(
+                    $"{nextAssigneeId.Value}@system.local",
                     "CẢNH BÁO ESCALATION: Khách hàng vi phạm SLA 3 lần",
-                    $"<p>Khách hàng {customerName} đã vi phạm SLA 3 lần liên tiếp do các nhân viên không liên hệ. Hệ thống đã thu hồi và giao lại cho bạn ({newConsultantName}) xử lý.</p>",
+                    $"<p>Lead <b>{customerName}</b> đã bị hoàn trả 3 lần từ nhân viên [{namesStr}]. Vui lòng xử lý gấp.</p>",
                     cancellationToken);
             }
 
-            var slaMinutes = await GetSlaDeadlineMinutesAsync(cancellationToken);
-            var deadline = now.AddMinutes(slaMinutes);
+            int currentLoad = await _customerCareStatusRepository.Query()
+                .CountAsync(c => c.AssigneeId == nextAssigneeId.Value && c.Status == LeadStatus.New && c.TrainingSystem == trainingSystem, cancellationToken);
 
-            latestStatus.IsReassigned = true;
-            latestStatus.ReassignedAt = now;
-            latestStatus.ReassignedToId = nextAssigneeId.Value;
+            var slaMinutes = await GetSlaDeadlineMinutesAsync(cancellationToken, isAdmin: isThreeStrikes || isEscalatedStrike);
+            int multiplier = Math.Min(_slaSettings.Value.MaxSlaMultiplier, Math.Max(1, currentLoad + 1));
+            var deadline = now.AddMinutes(slaMinutes * multiplier);
+
+            // Instead of marking IsReassigned, we just update the existing CustomerCareStatus
+            latestStatus.AssigneeId = nextAssigneeId.Value;
+            latestStatus.StatusDate = now;
+            latestStatus.Status = LeadStatus.New; // Reset status so SLA monitor starts tracking anew
             _customerCareStatusRepository.Update(latestStatus);
 
             _customerAssignmentHistoryRepository.Add(new CustomerAssignmentHistory
@@ -162,31 +228,13 @@ namespace LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolat
                 CustomerId = request.CustomerId,
                 AssigneeId = nextAssigneeId.Value,
                 AssignedById = request.ViolatedAssigneeId,
-                AssignmentDate = now,
-                Reason = AssignmentReason.SlaViolation,
-                Note = isThreeStrikes
-                    ? $"Vi phạm 3 lần -> Bắn lên Manager: {newConsultantName}"
-                    : $"Thu hồi từ NV vi phạm SLA, giao lại cho {newConsultantName}",
-            });
-
-            _customerCareStatusRepository.Add(new CustomerCareStatus
-            {
-                Id = Guid.NewGuid(),
-                CustomerId = request.CustomerId,
-                CustomerName = customerName,
-                TrainingSystem = trainingSystem,
-                AssigneeId = nextAssigneeId.Value,
-                AssignedAt = now,
-                Deadline = deadline,
-                IsContactMade = false,
-                IsViolated = false,
-                IsReassigned = false,
+                AssignmentDate = now
             });
 
             _auditLogRepository.Add(new AuditLog
             {
                 Id = Guid.NewGuid(),
-                Action = LeadAssignment.Domain.Enums.Action.Insert,
+                Action = LeadAssignment.Domain.Enums.Action.Assign,
                 Detail = $"SLA Violation: Thu hồi KH [{customerName}] từ NV {request.ViolatedAssigneeId}, giao lại cho [{newConsultantName}]",
                 RecordId = request.CustomerId,
                 RecordDesc = customerName,
@@ -209,13 +257,7 @@ namespace LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolat
                 SlaDeadline = deadline,
             }, cancellationToken);
 
-            await _notificationService.NotifyLeadReassignedAsync(
-                nextAssigneeId.Value, request.CustomerId, customerName,
-                isThreeStrikes ? "Lead vi phạm SLA 3 lần" : "SLA Violation — lead giao lại",
-                cancellationToken);
 
-            await _notificationService.NotifySlaViolationAsync(
-                request.ViolatedAssigneeId, request.CustomerId, customerName, cancellationToken);
 
             await _emailSender.SendEmailAsync(
                 $"{request.ViolatedAssigneeId}@system.local",

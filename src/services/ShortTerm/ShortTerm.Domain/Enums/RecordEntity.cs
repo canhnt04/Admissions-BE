@@ -9,7 +9,6 @@ namespace ShortTerm.Domain.Enums
         [Description("Đăng ký khóa học")] CourseParticipant,
         [Description("Ghi chú")] CustomerNote,
         [Description("Nhóm tuyển sinh")] AdmissionResultGroup,
-        [Description("Kết quả tuyển sinh")] AdmissionResult,
-        [Description("System Tag")] CustomTag,
+        [Description("Kết quả tuyển sinh")] AdmissionResult
     }
 }

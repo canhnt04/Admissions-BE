@@ -12,7 +12,6 @@ namespace ShortTerm.Application.Common.Interfaces
         DbSet<Course> Courses { get; }
         DbSet<CourseParticipant> CourseParticipants { get; }
         DbSet<CourseParticipantPayment> CourseParticipantPayments { get; }
-        DbSet<CustomTag> CustomTags { get; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }

@@ -4,13 +4,11 @@ using Shared.Contracts.Enums;
 using LeadAssignment.Application.Assignments.Commands.CheckIn;
 using LeadAssignment.Application.Assignments.Commands.CheckOut;
 using LeadAssignment.Application.Assignments.Commands.ManualAssign;
-using LeadAssignment.Application.Assignments.Commands.UpdateSlaConfig;
 using LeadAssignment.Application.Assignments.Queries.GetActiveSla;
 using LeadAssignment.Application.Assignments.Queries.GetAssignmentReport;
-using LeadAssignment.Application.Assignments.Queries.GetContactEvidences;
+using LeadAssignment.Application.Assignments.Queries.GetCustomerCareEvidence;
 using LeadAssignment.Application.Assignments.Queries.GetCustomerAssignmentHistory;
 using LeadAssignment.Application.Assignments.Queries.GetQueueStatus;
-using LeadAssignment.Application.ContactEvidences.Commands.CreateContactEvidence;
 using Shared.Common.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -44,10 +42,32 @@ namespace LeadAssignment.API.Controllers
             if (_currentUserService.UserId == null)
                 return Unauthorized(new { message = "Không xác định được danh tính người dùng" });
 
-            var command = new CheckInCommand { ConsultantId = _currentUserService.UserId.Value };
+            var roleTeamClaim = _currentUserService.RoleTeam;
+            TrainingSystem trainingSystem;
+
+            switch (roleTeamClaim)
+            {
+                case "4":
+                    trainingSystem = TrainingSystem.ShortTerm;
+                    break;
+                case "5":
+                    trainingSystem = TrainingSystem.Formal;
+                    break;
+                case "6":
+                    trainingSystem = TrainingSystem.Driving;
+                    break;
+                default:
+                    return Forbid();    
+            }
+
+            var command = new CheckInCommand 
+            { 
+                ConsultantId = _currentUserService.UserId.Value,
+                TrainingSystem = trainingSystem
+            };
             var result = await _mediator.Send(command);
             if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
-            return Ok(new { message = "Đã bật trạng thái nhận khách hàng" });
+            return Ok(new { message = $"Nhân viên {trainingSystem} đã check-in thành công." });
         }
 
         /// <summary>
@@ -80,16 +100,7 @@ namespace LeadAssignment.API.Controllers
             return Ok(new { message = "Đã giao thủ công khách hàng thành công" });
         }
 
-        /// <summary>
-        /// Cập nhật thời gian SLA (Dành cho Admin)
-        /// </summary>
-        [HttpPut("config/sla")]
-        public async Task<ActionResult> UpdateSlaConfig([FromBody] UpdateSlaConfigCommand command)
-        {
-            var result = await _mediator.Send(command);
-            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
-            return Ok(new { message = "Cập nhật cấu hình SLA thành công" });
-        }
+
 
         /// <summary>
         /// Xem báo cáo thống kê hiệu suất chăm sóc khách hàng
@@ -139,32 +150,15 @@ namespace LeadAssignment.API.Controllers
         }
 
         /// <summary>
-        /// Xem bằng chứng liên hệ của 1 khách hàng
+        /// Xem bằng chứng liên hệ của 1 khách hàng 
         /// </summary>
         [HttpGet("evidence/{customerId}")]
-        public async Task<ActionResult<List<ContactEvidenceDto>>> GetContactEvidences(Guid customerId)
+        public async Task<ActionResult<List<CustomerCareEvidenceDto>>> GetCustomerCareEvidences(Guid customerId)
         {
-            var query = new GetContactEvidencesQuery { CustomerId = customerId };
+            var query = new GetCustomerCareEvidenceQuery { CustomerId = customerId };
             var result = await _mediator.Send(query);
             if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
             return Ok(result.Data);
-        }
-
-        /// <summary>
-        /// Nộp bằng chứng đã liên hệ / tư vấn khách hàng (Dành cho Tư vấn viên)
-        /// </summary>
-        [HttpPost("evidence")]
-        public async Task<ActionResult> CreateContactEvidence([FromBody] CreateContactEvidenceCommand command)
-        {
-            if (_currentUserService.UserId == null)
-                return Unauthorized(new { message = "Không xác định được danh tính người dùng" });
-
-            // Ensure consultant can only submit evidence for themselves
-            command.ConsultantId = _currentUserService.UserId.Value;
-
-            var result = await _mediator.Send(command);
-            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
-            return Ok(new { message = "Đã nộp bằng chứng liên hệ thành công", evidenceId = result.Data });
         }
     }
 }

@@ -1,6 +1,7 @@
 using Auth.Domain.Enums;
 using Shared.Contracts.Enums;
 using Auth.Application.Features.Authentication.Commands.AssignUser;
+using Auth.Application.Features.Authentication.Commands.RemoveUserTeam;
 using Auth.Application.Features.Authentication.Commands.Login;
 using Auth.Application.Features.Authentication.Commands.Register;
 using Auth.Application.Features.Authentication.Queries;
@@ -42,7 +43,7 @@ namespace Auth.API.Controllers
         }
 
         /// <summary>
-        /// Đăng nhập hệ thống (Lấy Token)
+        /// Đăng nhập 
         /// </summary>
         [HttpPost("login")]
         [AllowAnonymous]
@@ -58,6 +59,17 @@ namespace Auth.API.Controllers
         [HttpPost("assign-user")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<AssignUserResponse>> AssignRole(AssignUserCommand command)
+        {
+            var response = await _mediator.Send(command);
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Gỡ người dùng khỏi đội nhóm hiện tại (Dành cho Admin)
+        /// </summary>
+        [HttpPost("remove-team")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<RemoveUserTeamResponse>> RemoveTeam(RemoveUserTeamCommand command)
         {
             var response = await _mediator.Send(command);
             return Ok(response);

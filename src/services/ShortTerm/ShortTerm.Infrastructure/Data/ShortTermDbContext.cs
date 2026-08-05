@@ -19,7 +19,6 @@ namespace ShortTerm.Infrastructure.Data
         public DbSet<Course> Courses { get; set; }
         public DbSet<CourseParticipant> CourseParticipants { get; set; }
         public DbSet<CourseParticipantPayment> CourseParticipantPayments { get; set; }
-        public DbSet<CustomTag> CustomTags { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

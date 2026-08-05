@@ -29,14 +29,18 @@ public class AssignUserCommandHandler : IRequestHandler<AssignUserCommand, Assig
         var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
         if (user == null) throw new NotFoundException(AuthErrors.UserNotFound);
 
+        if (request.Role.HasValue)
+        {
+            user.Role = request.Role.Value;
+        }
+
         if (request.TeamId.HasValue)
         {
             var team = await _teamRepository.GetByIdAsync(request.TeamId.Value, cancellationToken);
             if (team == null) throw new NotFoundException(AuthErrors.TeamNotFound);
+            
+            user.TeamId = request.TeamId;
         }
-
-        user.Role = request.Role;
-        user.TeamId = request.TeamId;
 
         _userRepository.Update(user);
 

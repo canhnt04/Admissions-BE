@@ -44,11 +44,9 @@ namespace LeadAssignment.Application.Assignments.Queries.GetCustomerAssignmentHi
             {
                 Id = h.Id,
                 AssigneeId = h.AssigneeId,
-                AssigneeName = userNames.GetValueOrDefault(h.AssigneeId, "Unknown"),
+                AssigneeName = userNames[h.AssigneeId],
                 AssignedById = h.AssignedById,
-                AssignmentDate = h.AssignmentDate,
-                Reason = h.Reason.ToString(),
-                Note = h.Note ?? string.Empty
+                AssignmentDate = h.AssignmentDate
             }).ToList();
 
             return Result<List<CustomerAssignmentHistoryDto>>.Success(result);

@@ -12,6 +12,6 @@ public class AssignUserCommandValidator : AbstractValidator<AssignUserCommand>
             .NotEmpty().WithMessage("UserId is required.");
 
         RuleFor(x => x.Role)
-            .IsInEnum().WithMessage("Invalid Role.");
+            .IsInEnum().When(x => x.Role.HasValue).WithMessage("Invalid Role.");
     }
 }

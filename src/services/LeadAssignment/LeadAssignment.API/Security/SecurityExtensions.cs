@@ -28,12 +28,11 @@ namespace LeadAssignment.API.Security
 
             services.AddAuthorization(options =>
             {
-                // Cho phép người dùng có Role = Admin, hoặc Role = 3 (EntryClerk/Tư vấn viên), hoặc thuộc Team CustomerCare (RoleTeam = 3)
+                // Cho phép người dùng có Role = Admin, hoặc thuộc Team CustomerCare (3), ShortTerm (4), Formal (5), Driving (6)
                 options.AddPolicy("RequireCustomerCareOrAdmin", policy =>
                     policy.RequireAssertion(context =>
                         context.User.IsInRole("Admin") ||
-                        context.User.IsInRole("EntryClerk") ||
-                        context.User.HasClaim(c => c.Type == "RoleTeam" && c.Value == "3")
+                        context.User.HasClaim(c => c.Type == "RoleTeam" && (c.Value == "4" || c.Value == "5" || c.Value == "6"))
                     ));
 
                 // Chỉ cho phép Admin (Role = Admin)

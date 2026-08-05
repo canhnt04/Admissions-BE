@@ -29,8 +29,5 @@ namespace Formal.Domain.Entities
         /// </summary>
         public CourseCategory? Category { get; set; }
 
-        // Khóa ngoại liên kết với CustomTag
-        public Guid? CustomTagId { get; set; }
-        public virtual CustomTag CustomTag { get; set; }
     }
 }

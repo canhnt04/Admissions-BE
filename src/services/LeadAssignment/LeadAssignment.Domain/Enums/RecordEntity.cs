@@ -11,5 +11,6 @@ namespace LeadAssignment.Domain.Enums
         [Description("Nhóm tuyển sinh")] AdmissionResultGroup,
         [Description("Kết quả tuyển sinh")] AdmissionResult,
         [Description("System Tag")] CustomTag,
+        [Description("Người dùng")] User,
     }
 }

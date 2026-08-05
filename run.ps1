@@ -31,36 +31,6 @@ foreach ($service in $services) {
     Start-Process pwsh -WorkingDirectory $service.Path -ArgumentList @("-NoExit", "-Command", "$envCmd; $titleCmd; dotnet watch run --no-launch-profile")
 }
 
-Write-Host "Waiting for all APIs to accept connections..." -ForegroundColor Magenta
-
-foreach ($service in $services) {
-    Write-Host "Waiting for $($service.Name) to open port $($service.Port) " -NoNewline -ForegroundColor Yellow
-    
-    $retryCount = 0
-    while ($retryCount -lt 120) {
-        $tcpClient = New-Object System.Net.Sockets.TcpClient
-        try {
-            $asyncResult = $tcpClient.BeginConnect("127.0.0.1", $service.Port, $null, $null)
-            $success = $asyncResult.AsyncWaitHandle.WaitOne(500, $false)
-            if ($success) {
-                $tcpClient.EndConnect($asyncResult)
-                break
-            }
-        } catch { 
-        } finally {
-            $tcpClient.Close()
-        }
-        Write-Host "." -NoNewline -ForegroundColor Yellow
-        $retryCount++
-        Start-Sleep -Milliseconds 500
-    }
-    if ($retryCount -eq 120) {
-        Write-Host " TIMEOUT!" -ForegroundColor Red
-        Write-Host "$($service.Name) failed to start on port $($service.Port) within 60 seconds. Check its terminal window for errors!" -ForegroundColor Red
-    } else {
-        Write-Host " READY!" -ForegroundColor Green
-    }
-}
 
 Write-Host "All APIs are up! Starting ApiGateway..." -ForegroundColor Yellow
 $gatewayTitle = "`$Host.UI.RawUI.WindowTitle = 'ApiGateway'"

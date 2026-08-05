@@ -7,31 +7,55 @@ using LeadAssignment.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Shared.Common;
+using Microsoft.Extensions.Logging;
 
 namespace LeadAssignment.Application.Assignments.Commands.CheckOut
 {
     public class CheckOutCommandHandler : IRequestHandler<CheckOutCommand, Result<bool>>
     {
-        private readonly IAssignmentQueueRepository _assignmentQueueRepository;
+        private readonly IAuditLogRepository _auditLogRepository;
         private readonly IAssignmentDbContext _context;
+        private readonly Microsoft.Extensions.Logging.ILogger<CheckOutCommandHandler> _logger;
 
-        public CheckOutCommandHandler(IAssignmentQueueRepository assignmentQueueRepository, IAssignmentDbContext context)
+        public CheckOutCommandHandler(
+            IAuditLogRepository auditLogRepository, 
+            IAssignmentDbContext context,
+            Microsoft.Extensions.Logging.ILogger<CheckOutCommandHandler> logger)
         {
-            _assignmentQueueRepository = assignmentQueueRepository;
+            _auditLogRepository = auditLogRepository;
             _context = context;
+            _logger = logger;
         }
 
         public async Task<Result<bool>> Handle(CheckOutCommand request, CancellationToken cancellationToken)
         {
-            var queue = await _assignmentQueueRepository
-                .FirstOrDefaultAsync(q => q.ConsultantId == request.ConsultantId && q.TrainingSystem == TrainingSystem.ShortTerm, cancellationToken);
+            var latestLog = await _auditLogRepository.Query()
+                .Where(a => a.UserId == request.ConsultantId && a.RecordEntity == RecordEntity.User && 
+                       a.Action == LeadAssignment.Domain.Enums.Action.Update &&
+                       (a.Detail.Contains("CHECK_IN") || a.Detail.Contains("CHECK_OUT")))
+                .OrderByDescending(a => a.CreationDate)
+                .FirstOrDefaultAsync(cancellationToken);
 
-            if (queue != null)
+            if (latestLog == null || latestLog.Detail.Contains("CHECK_OUT"))
             {
-                queue.IsActive = false;
-                _assignmentQueueRepository.Update(queue);
-                await _context.SaveChangesAsync(cancellationToken);
+                _logger.LogWarning("Spam check-out detected: Consultant {ConsultantId} is not currently checked in.", request.ConsultantId);
+                return Result<bool>.Failure(new Error(400, "Assignment.SpamCheckOut", "Bạn chưa check-in hoặc đã check-out rồi. Vui lòng không thực hiện lại thao tác này!"));
             }
+
+            var auditLog = new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                Action = LeadAssignment.Domain.Enums.Action.Update,
+                Detail = $"[CHECK_OUT] Nhân viên {request.ConsultantId} check-out.",
+                RecordId = request.ConsultantId,
+                RecordDesc = request.ConsultantId.ToString(),
+                RecordEntity = RecordEntity.User,
+                CreationDate = DateTime.UtcNow,
+                UserId = request.ConsultantId
+            };
+            
+            _auditLogRepository.Add(auditLog);
+            await _context.SaveChangesAsync(cancellationToken);
 
             return Result<bool>.Success(true);
         }

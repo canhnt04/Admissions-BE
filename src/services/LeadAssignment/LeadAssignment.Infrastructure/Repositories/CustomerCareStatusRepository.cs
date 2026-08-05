@@ -20,23 +20,25 @@ namespace LeadAssignment.Infrastructure.Repositories
             => await _dbSet.FirstOrDefaultAsync(
                 s => s.CustomerId == customerId &&
                      s.AssigneeId == assigneeId &&
-                     !s.IsContactMade &&
-                     !s.IsReassigned,
+                     s.Status == null,
                 cancellationToken);
 
         public async Task<CustomerCareStatus?> GetLatestActiveAsync(
             Guid customerId,
             CancellationToken cancellationToken = default)
             => await _dbSet
-                .Where(s => s.CustomerId == customerId && !s.IsReassigned)
-                .OrderByDescending(s => s.AssignedAt)
+                .Where(s => s.CustomerId == customerId)
+                .OrderByDescending(s => s.StatusDate)
                 .FirstOrDefaultAsync(cancellationToken);
 
         public async Task<int> CountSlaViolationsAsync(
             Guid customerId,
             CancellationToken cancellationToken = default)
-            => await _dbSet.CountAsync(
-                s => s.CustomerId == customerId && s.IsViolated,
+        {
+            var slaThreshold = DateTime.UtcNow.AddMinutes(-30);
+            return await _dbSet.CountAsync(
+                s => s.CustomerId == customerId && s.Status == null && s.StatusDate < slaThreshold,
                 cancellationToken);
+        }
     }
 }

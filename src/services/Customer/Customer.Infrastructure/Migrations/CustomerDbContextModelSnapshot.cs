@@ -29,10 +29,18 @@ namespace Customer.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Address")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("Assignee")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("BirthDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CCCD")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CCCDIssueDate")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("CreatedBy")
@@ -51,23 +59,59 @@ namespace Customer.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("Enrollment")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EquivalentDegree")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Ethnic")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FatherName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("FinalStatus")
+                        .HasColumnType("int");
+
                     b.Property<string>("Gender")
-                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("GraduationYear")
+                        .HasColumnType("int");
+
+                    b.Property<string>("LatestSchool")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Mobile")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("MotherName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("OnlineMessageMobile")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ParentMobile")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PlaceOfBirth")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("SaleStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SchoolAddress")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("Source")
                         .HasColumnType("int");
@@ -75,8 +119,20 @@ namespace Customer.Infrastructure.Migrations
                     b.Property<int?>("Status")
                         .HasColumnType("int");
 
+                    b.Property<string>("StudentId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("SubmissionDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<int?>("TrainingSystem")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserIdByOa")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 

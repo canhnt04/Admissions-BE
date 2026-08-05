@@ -60,81 +60,136 @@ namespace LeadAssignment.Infrastructure.Services
             var context = scope.ServiceProvider.GetRequiredService<IAssignmentDbContext>();
             var publishEndpoint = scope.ServiceProvider.GetRequiredService<IPublishEndpoint>();
             var userGrpcClient = scope.ServiceProvider.GetRequiredService<IUserGrpcClient>();
+            var mediator = scope.ServiceProvider.GetRequiredService<MediatR.IMediator>();
+            var slaSettings = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<LeadAssignment.Application.Common.Models.SlaSettings>>().Value;
             var now = DateTime.UtcNow;
 
-            var violations = await customerCareStatusRepository.Query()
-                .Where(s => !s.IsContactMade && s.Deadline < now && !s.IsReassigned && !s.IsViolated)
+            var managerIds = slaSettings.Managers.Values.ToList();
+            if (slaSettings.DefaultManagerId != Guid.Empty) managerIds.Add(slaSettings.DefaultManagerId);
+
+            var pendingLeads = await customerCareStatusRepository.Query()
+                .Where(s => s.Status == LeadStatus.New && s.AssigneeId != null)
                 .ToListAsync(cancellationToken);
+
+            if (pendingLeads.Count == 0) return;
+
+            var violations = new System.Collections.Generic.List<CustomerCareStatus>();
+            foreach (var sla in pendingLeads)
+            {
+                var assigneeId = sla.AssigneeId!.Value;
+                bool isManager = managerIds.Contains(assigneeId);
+                var baseSlaMins = isManager ? slaSettings.AdminSlaDeadlineMinutes : slaSettings.SlaDeadlineMinutes;
+                
+                int currentLoad = await customerCareStatusRepository.Query()
+                    .CountAsync(c => c.AssigneeId == assigneeId && c.Status == LeadStatus.New && c.TrainingSystem == sla.TrainingSystem, cancellationToken);
+                    
+                int multiplier = Math.Min(slaSettings.MaxSlaMultiplier, Math.Max(1, currentLoad));
+                
+                var deadline = (sla.StatusDate ?? now).AddMinutes(baseSlaMins * multiplier);
+                
+                if (now >= deadline)
+                {
+                    violations.Add(sla);
+                }
+            }
 
             if (violations.Count == 0) return;
 
             _logger.LogWarning("Phát hiện {Count} SLA violations", violations.Count);
 
-            var assigneeIds = violations.Select(v => v.AssigneeId).Distinct().ToList();
+            var assigneeIds = violations.Select(v => v.AssigneeId!.Value).Distinct().ToList();
             var userNames = await userGrpcClient.GetUserNamesAsync(assigneeIds, cancellationToken);
 
             foreach (var sla in violations)
             {
-                var assigneeName = userNames.GetValueOrDefault(sla.AssigneeId, "Unknown");
-
-                sla.IsViolated = true;
-                customerCareStatusRepository.Update(sla);
-
-                auditLogRepository.Add(new AuditLog
-                {
-                    Id = Guid.NewGuid(),
-                    Action = Domain.Enums.Action.Update,
-                    Detail = $"SLA Violation: NV [{assigneeName}] không liên hệ KH [{sla.CustomerName}] trong 30 phút. Giao lúc: {sla.AssignedAt:HH:mm:ss}, Deadline: {sla.Deadline:HH:mm:ss}",
-                    RecordId = sla.CustomerId,
-                    RecordDesc = sla.CustomerName,
-                    RecordEntity = RecordEntity.Customer,
-                    CreationDate = now,
-                    UserId = sla.AssigneeId,
-                });
-
-                await publishEndpoint.Publish(new SlaViolationEvent
-                {
-                    CustomerId = sla.CustomerId,
-                    CustomerName = sla.CustomerName,
-                    ViolatedAssigneeId = sla.AssigneeId,
-                    ViolatedAssigneeName = assigneeName,
-                    SlaTrackingId = sla.Id,
-                    AssignedAt = sla.AssignedAt,
-                    Deadline = sla.Deadline,
-                    ViolatedAt = now,
-                }, cancellationToken);
+                var assigneeId = sla.AssigneeId!.Value;
+                var assigneeName = userNames[assigneeId];
+                var assignedAt = sla.StatusDate ?? now;
 
                 _logger.LogWarning(
-                    "SLA Violation: Nhân viên {AssigneeName} ({AssigneeId}) không liên hệ KH {CustomerName} ({CustomerId}). Giao lúc: {AssignedAt}, Deadline: {Deadline}",
-                    assigneeName, sla.AssigneeId, sla.CustomerName, sla.CustomerId, sla.AssignedAt, sla.Deadline);
-            }
+                    "SLA Violation: Nhân viên {AssigneeName} ({AssigneeId}) không liên hệ KH {CustomerName} ({CustomerId}). Giao lúc: {AssignedAt}",
+                    assigneeName, assigneeId, sla.CustomerName, sla.CustomerId, assignedAt);
 
-            await context.SaveChangesAsync(cancellationToken);
+                await mediator.Send(new LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolation.ReassignAfterSlaViolationCommand
+                {
+                    CustomerId = sla.CustomerId,
+                    ViolatedAssigneeId = assigneeId
+                }, cancellationToken);
+            }
         }
 
         private async Task CheckSlaWarningsAsync(CancellationToken cancellationToken)
         {
             using var scope = _scopeFactory.CreateScope();
             var customerCareStatusRepository = scope.ServiceProvider.GetRequiredService<ICustomerCareStatusRepository>();
-            var notificationRepository = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
-            var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+            var auditLogRepository = scope.ServiceProvider.GetRequiredService<IAuditLogRepository>();
+            var context = scope.ServiceProvider.GetRequiredService<IAssignmentDbContext>();
+            var emailSender = scope.ServiceProvider.GetRequiredService<LeadAssignment.Application.Common.Interfaces.IEmailSender>();
+            var slaSettings = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<LeadAssignment.Application.Common.Models.SlaSettings>>().Value;
             var now = DateTime.UtcNow;
-            var warningThreshold = now.AddMinutes(WARNING_THRESHOLD_MINUTES);
 
-            var warnings = await customerCareStatusRepository.Query()
-                .Where(s => !s.IsContactMade && !s.IsViolated && !s.IsReassigned && s.Deadline > now && s.Deadline <= warningThreshold)
+            var managerIds = slaSettings.Managers.Values.ToList();
+            if (slaSettings.DefaultManagerId != Guid.Empty) managerIds.Add(slaSettings.DefaultManagerId);
+
+            var pendingLeads = await customerCareStatusRepository.Query()
+                .Where(s => s.Status == LeadStatus.New && s.AssigneeId != null)
                 .ToListAsync(cancellationToken);
+
+            if (pendingLeads.Count == 0) return;
+
+            var warnings = new System.Collections.Generic.List<(CustomerCareStatus Sla, DateTime Deadline)>();
+            foreach (var sla in pendingLeads)
+            {
+                var assigneeId = sla.AssigneeId!.Value;
+                bool isManager = managerIds.Contains(assigneeId);
+                var baseSlaMins = isManager ? slaSettings.AdminSlaDeadlineMinutes : slaSettings.SlaDeadlineMinutes;
+                
+                int currentLoad = await customerCareStatusRepository.Query()
+                    .CountAsync(c => c.AssigneeId == assigneeId && c.Status == LeadStatus.New && c.TrainingSystem == sla.TrainingSystem, cancellationToken);
+                    
+                int multiplier = Math.Min(slaSettings.MaxSlaMultiplier, Math.Max(1, currentLoad));
+                
+                var deadline = (sla.StatusDate ?? now).AddMinutes(baseSlaMins * multiplier);
+                
+                if (now >= deadline.AddMinutes(-5) && now < deadline)
+                {
+                    warnings.Add((sla, deadline));
+                }
+            }
 
             if (warnings.Count == 0) return;
 
-            foreach (var sla in warnings)
+            foreach (var item in warnings)
             {
-                var alreadyWarned = await notificationRepository.AnyAsync(n => n.RecipientId == sla.AssigneeId && n.ReferenceId == sla.Id && n.Type == NotificationType.SlaWarning, cancellationToken);
-
+                var sla = item.Sla;
+                var deadline = item.Deadline;
+                var assigneeId = sla.AssigneeId!.Value;
+                
+                var alreadyWarned = await auditLogRepository.Query()
+                    .AnyAsync(a => a.RecordId == sla.CustomerId && a.Action == LeadAssignment.Domain.Enums.Action.Update && a.Detail.Contains("SLA_WARNING_SENT"), cancellationToken);
+                    
                 if (!alreadyWarned)
                 {
-                    await notificationService.NotifySlaWarningAsync(sla.AssigneeId, sla.CustomerId, sla.CustomerName, sla.Deadline, cancellationToken);
-                    _logger.LogInformation("SLA Warning sent: NV {AssigneeId} còn {Minutes} phút để liên hệ KH {CustomerName}", sla.AssigneeId, (sla.Deadline - now).TotalMinutes, sla.CustomerName);
+                    auditLogRepository.Add(new AuditLog
+                    {
+                        Id = Guid.NewGuid(),
+                        Action = LeadAssignment.Domain.Enums.Action.Update,
+                        Detail = $"[SLA_WARNING_SENT] Cảnh báo SLA cho KH {sla.CustomerName}",
+                        RecordId = sla.CustomerId,
+                        RecordDesc = sla.CustomerName,
+                        RecordEntity = RecordEntity.Customer,
+                        CreationDate = now,
+                        UserId = Guid.Empty
+                    });
+                    await context.SaveChangesAsync(cancellationToken);
+                    
+                    await emailSender.SendEmailAsync(
+                        $"{assigneeId}@system.local",
+                        $"[Cảnh báo] Bạn có 1 Lead chưa xử lý sắp hết hạn",
+                        $"<p>Khách hàng {sla.CustomerName} sắp hết hạn SLA vào lúc {deadline:HH:mm:ss dd/MM/yyyy}. Vui lòng xử lý ngay lập tức.</p>",
+                        cancellationToken);
+                        
+                    _logger.LogInformation("SLA Warning sent: NV {AssigneeId} còn {Minutes} phút để liên hệ KH {CustomerName}", assigneeId, (deadline - now).TotalMinutes, sla.CustomerName);
                 }
             }
         }

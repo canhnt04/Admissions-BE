@@ -8,7 +8,7 @@ namespace Auth.Application.Features.Authentication.Commands.AssignUser;
 public class AssignUserCommand : IRequest<AssignUserResponse>
 {
     public Guid UserId { get; set; }
-    public Role Role { get; set; }
+    public Role? Role { get; set; }
     public Guid? TeamId { get; set; }
 }
 

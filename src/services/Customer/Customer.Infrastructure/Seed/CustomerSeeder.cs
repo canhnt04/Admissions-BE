@@ -1,6 +1,7 @@
 using Bogus;
 using Shared.Contracts.Events.Customer;
 using Customer.Domain.Entities;
+using Customer.Domain.Enums;
 using Customer.Infrastructure.Data;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -43,10 +44,32 @@ namespace Customer.Infrastructure.Seed
                 .RuleFor(c => c.Gender, f => f.PickRandom("Nam", "Nữ"))
                 .RuleFor(c => c.Address, f => f.Address.StreetAddress())
                 .RuleFor(c => c.BirthDate, f => f.Date.Past(25, DateTime.Now.AddYears(-15)))
-                .RuleFor(c => c.Source, f => f.PickRandom<Domain.Enums.Source>())
-                // Không set TrainingSystem ở giai đoạn tư vấn ban đầu
+                .RuleFor(c => c.Source, f => f.PickRandom<Source>())
                 .RuleFor(c => c.CreationDate, f => f.Date.Recent(30))
-                .RuleFor(c => c.CreatedBy, f => Guid.NewGuid());
+                .RuleFor(c => c.CreatedBy, f => Guid.NewGuid())
+                .RuleFor(c => c.UpdateTime, f => f.Date.Recent(15))
+                .RuleFor(c => c.Assignee, f => f.Random.Bool(0.3f) ? Guid.NewGuid() : null)
+                .RuleFor(c => c.Status, f => f.PickRandom<CustomerStatus>())
+                .RuleFor(c => c.EducationLevel, f => f.PickRandom<EducationLevel>())
+                .RuleFor(c => c.EquivalentDegree, f => f.PickRandom<EquivalentDegree>())
+                .RuleFor(c => c.SaleStatus, f => f.PickRandom<SaleStatus>())
+                .RuleFor(c => c.TrainingSystem, f => f.Random.Bool(0.5f) ? f.PickRandom<TrainingSystem>() : null)
+                .RuleFor(c => c.PlaceOfBirth, f => f.Address.City())
+                .RuleFor(c => c.LatestSchool, f => $"Trường {f.Company.CompanyName()}")
+                .RuleFor(c => c.OnlineMessageMobile, f => f.Phone.PhoneNumber("09########"))
+                .RuleFor(c => c.Ethnic, f => f.PickRandom("Kinh", "Tày", "Thái", "Mường", "Nùng"))
+                .RuleFor(c => c.SubmissionDate, f => f.Date.Recent(5))
+                .RuleFor(c => c.SchoolAddress, f => f.Address.FullAddress())
+                .RuleFor(c => c.UserIdByOa, f => f.Random.AlphaNumeric(10))
+                .RuleFor(c => c.ParentMobile, f => f.Phone.PhoneNumber("09########"))
+                .RuleFor(c => c.CCCD, f => f.Random.Replace("############"))
+                .RuleFor(c => c.CCCDIssueDate, f => f.Date.Past(5))
+                .RuleFor(c => c.FatherName, f => f.Name.FullName(Bogus.DataSets.Name.Gender.Male))
+                .RuleFor(c => c.MotherName, f => f.Name.FullName(Bogus.DataSets.Name.Gender.Female))
+                .RuleFor(c => c.FinalStatus, f => f.PickRandom<LeadStatus>())
+                .RuleFor(c => c.GraduationYear, f => f.Random.Number(2010, DateTime.Now.Year))
+                .RuleFor(c => c.Enrollment, f => f.PickRandom<Enrollment>())
+                .RuleFor(c => c.StudentId, f => f.Random.Bool(0.2f) ? f.Random.AlphaNumeric(8).ToUpper() : null);
 
             var customers = faker.Generate(count);
 
