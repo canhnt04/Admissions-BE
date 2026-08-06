@@ -4,6 +4,7 @@ using Shared.Contracts.Enums;
 using LeadAssignment.Application.Assignments.Commands.CheckIn;
 using LeadAssignment.Application.Assignments.Commands.CheckOut;
 using LeadAssignment.Application.Assignments.Commands.ManualAssign;
+using LeadAssignment.Application.Assignments.Commands.CreateContactEvidence;
 using LeadAssignment.Application.Assignments.Queries.GetActiveSla;
 using LeadAssignment.Application.Assignments.Queries.GetAssignmentReport;
 using LeadAssignment.Application.Assignments.Queries.GetCustomerCareEvidence;
@@ -167,6 +168,21 @@ namespace LeadAssignment.API.Controllers
             var result = await _mediator.Send(query);
             if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
             return Ok(result.Data);
+        }
+
+        /// <summary>
+        /// Ghi nhận bằng chứng liên hệ / Cập nhật trạng thái chăm sóc khách hàng (Dành cho Tư vấn viên)
+        /// </summary>
+        [HttpPost("evidence")]
+        public async Task<ActionResult> CreateContactEvidence([FromBody] CreateContactEvidenceCommand command)
+        {
+            if (_currentUserService.UserId == null)
+                return Unauthorized(new { message = "Không xác định được danh tính người dùng" });
+
+            command.AssigneeId = _currentUserService.UserId.Value;
+            var result = await _mediator.Send(command);
+            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
+            return Ok(new { message = "Ghi nhận bằng chứng liên hệ thành công" });
         }
 
         /// <summary>

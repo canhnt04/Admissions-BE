@@ -200,7 +200,7 @@ namespace LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolat
                 // Resolve names of violating consultants for notification
                 var violatingAssigneeIds = pastAssignments.Select(x => x.AssigneeId).Distinct().ToList();
                 var violatingFullNames = await _userGrpcClient.GetUserFullNamesAsync(violatingAssigneeIds, cancellationToken);
-                var namesStr = string.Join(", ", violatingAssigneeIds.Select(id => violatingfullNames[id]));
+                var namesStr = string.Join(", ", violatingAssigneeIds.Select(id => violatingFullNames[id]));
 
                 await _emailSender.SendEmailAsync(
                     $"{nextAssigneeId.Value}@system.local",

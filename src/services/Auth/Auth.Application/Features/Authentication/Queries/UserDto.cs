@@ -13,6 +13,7 @@ public class UserDto
     public string IdentificationNumber { get; set; } = string.Empty;
     public Role Role { get; set; }
     public Guid? TeamId { get; set; }
+    public RoleTeam? RoleTeam { get; set; }
     public string ProfilePicUrl { get; set; } = string.Empty;
     public bool IsActived { get; set; }
     public string UserInternalId { get; set; } = string.Empty;
