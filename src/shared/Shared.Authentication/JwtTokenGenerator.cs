@@ -36,7 +36,7 @@ public class JwtTokenGenerator
             issuer: _jwtOptions.Issuer,
             audience: _jwtOptions.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_jwtOptions.ExpiryMinutes),
+            expires: Shared.Common.Helpers.TimeHelper.VietnamNow.AddMinutes(_jwtOptions.ExpiryMinutes),
             signingCredentials: creds
         );
 

@@ -143,10 +143,26 @@ namespace LeadAssignment.API.Controllers
         /// Xem tình trạng queue của cá nhân (Tư vấn viên)
         /// </summary>
         [HttpGet("queue/me")]
-        public async Task<ActionResult<List<QueueStatusDto>>> GetMyQueueStatus([FromQuery] TrainingSystem? trainingSystem)
+        public async Task<ActionResult<List<QueueStatusDto>>> GetMyQueueStatus()
         {
             if (_currentUserService.UserId == null)
                 return Unauthorized(new { message = "Không xác định được danh tính người dùng" });
+
+            var roleTeamClaim = _currentUserService.RoleTeam;
+            TrainingSystem? trainingSystem = null;
+
+            switch (roleTeamClaim)
+            {
+                case "4":
+                    trainingSystem = TrainingSystem.ShortTerm;
+                    break;
+                case "5":
+                    trainingSystem = TrainingSystem.Formal;
+                    break;
+                case "6":
+                    trainingSystem = TrainingSystem.Driving;
+                    break;
+            }
 
             var query = new GetQueueStatusQuery 
             { 
@@ -159,12 +175,31 @@ namespace LeadAssignment.API.Controllers
         }
 
         /// <summary>
-        /// Xem danh sách SLA đang active (chưa liên hệ)
+        /// Xem danh sách SLA đang active toàn hệ thống (Admin)
         /// </summary>
         [HttpGet("sla/active")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<List<ActiveSlaDto>>> GetActiveSla([FromQuery] TrainingSystem? trainingSystem)
         {
             var query = new GetActiveSlaQuery { TrainingSystem = trainingSystem };
+            var result = await _mediator.Send(query);
+            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
+            return Ok(result.Data);
+        }
+
+        /// <summary>
+        /// Xem danh sách khách hàng ĐANG ĐƯỢC GIAO cho bản thân (Tư vấn viên)
+        /// </summary>
+        [HttpGet("sla/me")]
+        public async Task<ActionResult<List<ActiveSlaDto>>> GetMyActiveSla()
+        {
+            if (_currentUserService.UserId == null)
+                return Unauthorized(new { message = "Không xác định được danh tính người dùng" });
+
+            var query = new GetActiveSlaQuery 
+            { 
+                ConsultantId = _currentUserService.UserId.Value
+            };
             var result = await _mediator.Send(query);
             if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
             return Ok(result.Data);

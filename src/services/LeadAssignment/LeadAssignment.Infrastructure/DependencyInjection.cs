@@ -37,10 +37,21 @@ namespace LeadAssignment.Infrastructure
             services.Configure<LeadAssignment.Application.Common.Models.SlaSettings>(configuration.GetSection("SlaSettings"));
             services.AddScoped<IEmailSender, SmtpEmailSender>();
 
+            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+
             var authServiceUrl = configuration["GrpcConfig:AuthServiceUrl"] ?? "http://auth-api:8080";
             services.AddGrpcClient<Shared.Protos.Users.UserService.UserServiceClient>(o =>
             {
                 o.Address = new Uri(authServiceUrl);
+            })
+            .ConfigurePrimaryHttpMessageHandler(() =>
+            {
+                var handler = new HttpClientHandler();
+                if (authServiceUrl.Contains("localhost"))
+                {
+                    handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+                }
+                return handler;
             });
             services.AddScoped<IUserGrpcClient, UserGrpcClient>();
 

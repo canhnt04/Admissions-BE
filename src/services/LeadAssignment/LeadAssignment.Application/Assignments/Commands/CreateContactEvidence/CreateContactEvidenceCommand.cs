@@ -48,8 +48,8 @@ namespace LeadAssignment.Application.Assignments.Commands.CreateContactEvidence
             status.Status = request.Status;
             status.FollowStatus = request.FollowStatus;
             status.Note = request.Note;
-            status.StatusDate = DateTime.UtcNow;
-            status.ReportDate = DateTime.UtcNow;
+            status.StatusDate = Shared.Common.Helpers.TimeHelper.VietnamNow;
+            status.ReportDate = Shared.Common.Helpers.TimeHelper.VietnamNow;
 
             _customerCareStatusRepository.Update(status);
             await _context.SaveChangesAsync(cancellationToken);

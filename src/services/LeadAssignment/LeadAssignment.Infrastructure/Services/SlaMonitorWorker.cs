@@ -62,7 +62,7 @@ namespace LeadAssignment.Infrastructure.Services
             var userGrpcClient = scope.ServiceProvider.GetRequiredService<IUserGrpcClient>();
             var mediator = scope.ServiceProvider.GetRequiredService<MediatR.IMediator>();
             var slaSettings = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<LeadAssignment.Application.Common.Models.SlaSettings>>().Value;
-            var now = DateTime.UtcNow;
+            var now = Shared.Common.Helpers.TimeHelper.VietnamNow;
 
             var managerIds = slaSettings.Managers.Values.ToList();
             if (slaSettings.DefaultManagerId != Guid.Empty) managerIds.Add(slaSettings.DefaultManagerId);
@@ -126,7 +126,7 @@ namespace LeadAssignment.Infrastructure.Services
             var context = scope.ServiceProvider.GetRequiredService<IAssignmentDbContext>();
             var emailSender = scope.ServiceProvider.GetRequiredService<LeadAssignment.Application.Common.Interfaces.IEmailSender>();
             var slaSettings = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<LeadAssignment.Application.Common.Models.SlaSettings>>().Value;
-            var now = DateTime.UtcNow;
+            var now = Shared.Common.Helpers.TimeHelper.VietnamNow;
 
             var managerIds = slaSettings.Managers.Values.ToList();
             if (slaSettings.DefaultManagerId != Guid.Empty) managerIds.Add(slaSettings.DefaultManagerId);
@@ -174,7 +174,7 @@ namespace LeadAssignment.Infrastructure.Services
                     {
                         Id = Guid.NewGuid(),
                         Action = LeadAssignment.Domain.Enums.Action.Update,
-                        Detail = $"[SLA_WARNING_SENT] Cảnh báo SLA cho KH {sla.CustomerName}",
+                        Detail = $"[SLA_WARNING_SENT] Cảnh báo SLA cho khách hàng {sla.CustomerName}",
                         RecordId = sla.CustomerId,
                         RecordDesc = sla.CustomerName,
                         RecordEntity = RecordEntity.Customer,
@@ -184,7 +184,7 @@ namespace LeadAssignment.Infrastructure.Services
                     await context.SaveChangesAsync(cancellationToken);
                     
                     await emailSender.SendEmailAsync(
-                        $"{assigneeId}@system.local",
+                        $"{assigneeId}",
                         $"[Cảnh báo] Bạn có 1 Lead chưa xử lý sắp hết hạn",
                         $"<p>Khách hàng {sla.CustomerName} sắp hết hạn SLA vào lúc {deadline:HH:mm:ss dd/MM/yyyy}. Vui lòng xử lý ngay lập tức.</p>",
                         cancellationToken);

@@ -71,7 +71,7 @@ namespace LeadAssignment.Application.Assignments.Commands.ManualAssign
                 cancellationToken);
             var assigneeName = fullNames[request.AssigneeId];
 
-            var now = DateTime.UtcNow;
+            var now = Shared.Common.Helpers.TimeHelper.VietnamNow;
 
             int currentLoad = await _customerCareStatusRepository.Query()
                 .CountAsync(c => c.AssigneeId == request.AssigneeId && c.Status == LeadStatus.New && c.TrainingSystem == trainingSystem, cancellationToken);

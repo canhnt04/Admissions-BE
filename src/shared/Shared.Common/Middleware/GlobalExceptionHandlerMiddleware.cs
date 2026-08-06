@@ -54,7 +54,7 @@ public class GlobalExceptionHandlerMiddleware
         var response = new ApiErrorResponse
         {
             TraceId = context.TraceIdentifier,
-            Timestamp = DateTime.UtcNow
+            Timestamp = Shared.Common.Helpers.TimeHelper.VietnamNow
         };
 
         switch (exception)

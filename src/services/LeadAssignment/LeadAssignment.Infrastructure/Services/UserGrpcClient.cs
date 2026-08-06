@@ -40,11 +40,12 @@ namespace LeadAssignment.Infrastructure.Services
                 }
                 return result;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Nếu gRPC fail, trả về dictionary rỗng (fallback)
+                Console.WriteLine($"[GRPC ERROR] {ex.Message}");
+                Console.WriteLine(ex.ToString());
                 return new Dictionary<Guid, string>();
-            }
+            }   
         }
     }
 }

@@ -80,16 +80,19 @@ namespace LeadAssignment.Application.Assignments.Commands.AssignPendingLeads
                 }
 
                 // Lấy danh sách các nhân viên đang active (dựa vào AuditLog)
-                var tenDaysAgo = DateTime.UtcNow.AddDays(-10); // Chỉ lấy những ai có hoạt động gần đây
+                var tenDaysAgo = Shared.Common.Helpers.TimeHelper.VietnamNow.AddDays(-10); // Chỉ lấy những ai có hoạt động gần đây
                 
-                var activeLogs = await _auditLogRepository.Query()
+                var rawLogs = await _auditLogRepository.Query()
                     .Where(a => a.RecordEntity == RecordEntity.User && 
                            a.Action == LeadAssignment.Domain.Enums.Action.Update &&
                            (a.Detail.Contains("CHECK_IN") || a.Detail.Contains("CHECK_OUT")) &&
                            a.CreationDate > tenDaysAgo)
+                    .ToListAsync(cancellationToken);
+
+                var activeLogs = rawLogs
                     .GroupBy(a => a.UserId)
                     .Select(g => g.OrderByDescending(x => x.CreationDate).FirstOrDefault())
-                    .ToListAsync(cancellationToken);
+                    .ToList();
 
                 var activeConsultantIds = activeLogs
                     .Where(l => l != null && l.Detail.Contains("CHECK_IN"))
@@ -137,7 +140,7 @@ namespace LeadAssignment.Application.Assignments.Commands.AssignPendingLeads
                     return Result<bool>.Success(false);
                 }
 
-                var now = DateTime.UtcNow;
+                var now = Shared.Common.Helpers.TimeHelper.VietnamNow;
 
                 int assignedCount = 0;
 

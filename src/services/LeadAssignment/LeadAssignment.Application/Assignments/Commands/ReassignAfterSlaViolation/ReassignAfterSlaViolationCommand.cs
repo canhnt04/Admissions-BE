@@ -70,6 +70,18 @@ namespace LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolat
 
         public async Task<Result<Guid?>> Handle(ReassignAfterSlaViolationCommand request, CancellationToken cancellationToken)
         {
+            try
+            {
+                return await HandleInner(request, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                System.IO.File.AppendAllText("C:\\Workspace\\.NET\\Admissions\\Backend\\CrmAdmissions\\reassign_error.log", ex.ToString() + Environment.NewLine);
+                throw;
+            }
+        }
+        private async Task<Result<Guid?>> HandleInner(ReassignAfterSlaViolationCommand request, CancellationToken cancellationToken)
+        {
             var latestStatus = await _customerCareStatusRepository.Query()
                 .Where(s => s.CustomerId == request.CustomerId && s.AssigneeId == request.ViolatedAssigneeId)
                 .OrderByDescending(s => s.StatusDate)
@@ -79,7 +91,7 @@ namespace LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolat
 
             var customerName = latestStatus.CustomerName;
             var trainingSystem = latestStatus.TrainingSystem;
-            var now = DateTime.UtcNow;
+            var now = Shared.Common.Helpers.TimeHelper.VietnamNow;
 
 
 
@@ -137,15 +149,18 @@ namespace LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolat
             if (nextAssigneeId == null)
             {
                 // Find next active consultant
-                var tenDaysAgo = DateTime.UtcNow.AddDays(-10);
-                var activeLogs = await _auditLogRepository.Query()
+                var tenDaysAgo = Shared.Common.Helpers.TimeHelper.VietnamNow.AddDays(-10);
+                var rawLogs = await _auditLogRepository.Query()
                     .Where(a => a.RecordEntity == RecordEntity.User && 
                            a.Action == LeadAssignment.Domain.Enums.Action.Update &&
                            (a.Detail.Contains("CHECK_IN") || a.Detail.Contains("CHECK_OUT")) &&
                            a.CreationDate > tenDaysAgo)
+                    .ToListAsync(cancellationToken);
+
+                var activeLogs = rawLogs
                     .GroupBy(a => a.UserId)
                     .Select(g => g.OrderByDescending(x => x.CreationDate).FirstOrDefault())
-                    .ToListAsync(cancellationToken);
+                    .ToList();
 
                 var activeConsultantIds = activeLogs
                     .Where(l => l != null && l.Detail.Contains("CHECK_IN") && l.UserId != request.ViolatedAssigneeId)

@@ -32,7 +32,7 @@ namespace Formal.Application.Features.Customers.Commands.CreateCustomer
                 Name = request.FullName,
                 Mobile = request.Mobile,
                 Source = (Source)request.Source,
-                CreationDate = DateTime.UtcNow
+                CreationDate = Shared.Common.Helpers.TimeHelper.VietnamNow
             };
 
             _customerRepository.Add(customer);

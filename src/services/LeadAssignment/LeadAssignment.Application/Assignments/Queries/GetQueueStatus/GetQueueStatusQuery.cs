@@ -50,17 +50,20 @@ namespace LeadAssignment.Application.Assignments.Queries.GetQueueStatus
         public async Task<Result<List<QueueStatusDto>>> Handle(GetQueueStatusQuery request, CancellationToken cancellationToken)
         {
             // Retrieve recent check-in/check-out state from AuditLog.
-            var tenDaysAgo = DateTime.UtcNow.AddDays(-10);
-            var latestLogs = await _auditLogRepository.Query()
-                .Where(a => a.RecordEntity == RecordEntity.User &&
+            var tenDaysAgo = Shared.Common.Helpers.TimeHelper.VietnamNow.AddDays(-10);
+            var rawLogs = await _auditLogRepository.Query()
+                .Where(a => a.RecordEntity == RecordEntity.User && 
                        a.Action == LeadAssignment.Domain.Enums.Action.Update &&
                        (a.Detail.Contains("CHECK_IN") || a.Detail.Contains("CHECK_OUT")) &&
                        a.CreationDate > tenDaysAgo)
-                .GroupBy(a => a.UserId)
-                .Select(g => g.OrderByDescending(x => x.CreationDate).FirstOrDefault())
                 .ToListAsync(cancellationToken);
 
-            var activeConsultantLogs = latestLogs
+            var activeLogs = rawLogs
+                .GroupBy(a => a.UserId)
+                .Select(g => g.OrderByDescending(x => x.CreationDate).FirstOrDefault())
+                .ToList();
+
+            var activeConsultantLogs = activeLogs
                 .Where(l => l != null && l.Detail.Contains("CHECK_IN"))
                 .Select(l => l!);
 
@@ -117,9 +120,9 @@ namespace LeadAssignment.Application.Assignments.Queries.GetQueueStatus
                 result.Add(new QueueStatusDto
                 {
                     Id = Guid.NewGuid(),
-                    TrainingSystem = request.TrainingSystem?.ToString() ?? "All",
+                    TrainingSystem = request.TrainingSystem?.ToString(),
                     ConsultantId = cid,
-                    ConsultantName = fullNames.TryGetValue(cid, out var name) ? name : "User",
+                    ConsultantName = fullNames[cid],
                     OrderIndex = 0,
                     CurrentLoad = currentLoad,
                     MaxLoad = 10,

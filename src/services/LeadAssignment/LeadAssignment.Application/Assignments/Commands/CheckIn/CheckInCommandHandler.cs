@@ -53,7 +53,7 @@ namespace LeadAssignment.Application.Assignments.Commands.CheckIn
                 RecordId = request.ConsultantId,
                 RecordDesc = request.ConsultantId.ToString(),
                 RecordEntity = RecordEntity.User,
-                CreationDate = DateTime.UtcNow,
+                CreationDate = Shared.Common.Helpers.TimeHelper.VietnamNow,
                 UserId = request.ConsultantId
             };
             

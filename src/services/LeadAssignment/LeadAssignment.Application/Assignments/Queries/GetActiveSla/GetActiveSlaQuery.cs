@@ -12,6 +12,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
     public class GetActiveSlaQuery : IRequest<Result<List<ActiveSlaDto>>>
     {
         public TrainingSystem? TrainingSystem { get; set; }
+        public Guid? ConsultantId { get; set; }
     }
 
     public class ActiveSlaDto
@@ -42,10 +43,13 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
         public async Task<Result<List<ActiveSlaDto>>> Handle(GetActiveSlaQuery request, CancellationToken cancellationToken)
         {
             var query = _context.CustomerCareStatuses
-                .Where(s => s.AssigneeId != null && s.Status == null);
+                .Where(s => s.AssigneeId != null && (s.Status == null || s.Status == LeadStatus.New));
 
             if (request.TrainingSystem.HasValue)
                 query = query.Where(s => s.TrainingSystem == request.TrainingSystem.Value);
+
+            if (request.ConsultantId.HasValue)
+                query = query.Where(s => s.AssigneeId == request.ConsultantId.Value);
 
             var rawSlaList = await query
                 .OrderBy(s => s.StatusDate)
@@ -63,7 +67,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
             var assigneeIds = rawSlaList.Select(s => s.AssigneeId).Distinct().ToList();
             var fullNames = await _userGrpcClient.GetUserFullNamesAsync(assigneeIds, cancellationToken);
 
-            var now = DateTime.UtcNow;
+            var now = Shared.Common.Helpers.TimeHelper.VietnamNow;
             var slaThreshold = now.AddMinutes(-30);
             
             var result = rawSlaList.Select(s => new ActiveSlaDto
@@ -73,7 +77,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
                 CustomerName = s.CustomerName,
                 TrainingSystem = s.TrainingSystem.ToString() ?? string.Empty,
                 AssigneeId = s.AssigneeId,
-                AssigneeName = fullNames[s.AssigneeId],
+                AssigneeName = fullNames.TryGetValue(s.AssigneeId, out var name) ? name : "User",
                 AssignedAt = s.StatusDate ?? now,
                 Deadline = (s.StatusDate ?? now).AddMinutes(30),
                 RemainingMinutes = (int)((s.StatusDate ?? now).AddMinutes(30) - now).TotalMinutes,

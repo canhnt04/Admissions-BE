@@ -14,9 +14,9 @@ Write-Host "========================================================" -Foregroun
 
 $services = @(
     @{ Name = "Auth.API"; Path = "src\services\Auth\Auth.API"; Port = 5001 },
-    @{ Name = "Formal.API"; Path = "src\services\Formal\Formal.API"; Port = 5002 },
-    @{ Name = "ShortTerm.API"; Path = "src\services\ShortTerm\ShortTerm.API"; Port = 5003 },
-    @{ Name = "Driving.API"; Path = "src\services\Driving\Driving.API"; Port = 5004 },
+    # @{ Name = "Formal.API"; Path = "src\services\Formal\Formal.API"; Port = 5002 },
+    # @{ Name = "ShortTerm.API"; Path = "src\services\ShortTerm\ShortTerm.API"; Port = 5003 },
+    # @{ Name = "Driving.API"; Path = "src\services\Driving\Driving.API"; Port = 5004 },
     @{ Name = "LeadAssignment.API"; Path = "src\services\LeadAssignment\LeadAssignment.API"; Port = 5005 },
     @{ Name = "Customer.API"; Path = "src\services\Customer\Customer.API"; Port = 5006 }
 )

@@ -35,7 +35,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetAssignmentReport
                 query = query.Where(x => x.StatusDate <= request.ToDate.Value);
 
             // TODO: Fetch from config if needed. Using 30 mins as default
-            var slaThreshold = System.DateTime.UtcNow.AddMinutes(-30);
+            var slaThreshold = Shared.Common.Helpers.TimeHelper.VietnamNow.AddMinutes(-30);
 
             var grouped = await query
                 .GroupBy(x => x.AssigneeId)

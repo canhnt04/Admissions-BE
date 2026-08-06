@@ -28,12 +28,6 @@ namespace Customer.Infrastructure.Seed
 
         public async Task SeedAsync(int count = 100)
         {
-            if (await _context.Customers.AnyAsync())
-            {
-                _logger.LogInformation("Database đã có dữ liệu Customer, bỏ qua việc seed.");
-                return;
-            }
-
             _logger.LogInformation("Bắt đầu tạo {Count} Customers...", count);
 
             var faker = new Faker<Domain.Entities.Customer>("vi")
@@ -78,17 +72,15 @@ namespace Customer.Infrastructure.Seed
             _logger.LogInformation("Gửi {Count} sự kiện CustomerCreatedEvent...", count);
             foreach (var c in customers)
             {
-                var evt = new CustomerCreatedEvent(
+                await _publishEndpoint.Publish(new CustomerCreatedEvent(
                     c.Id,
                     c.Name,
                     c.Mobile,
                     c.TrainingSystem
-                );
-                await _publishEndpoint.Publish(evt);
+                ));
             }
 
-            // Theo như yêu cầu: Lưu DB + Gửi Event
-            _logger.LogInformation("Lưu vào DB...");
+            _logger.LogInformation("Lưu vào DB CustomerDb (bao gồm Customer và Outbox)...");
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Hoàn tất Seed Data.");

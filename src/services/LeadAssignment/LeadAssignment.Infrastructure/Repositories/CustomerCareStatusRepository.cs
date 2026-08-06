@@ -35,7 +35,7 @@ namespace LeadAssignment.Infrastructure.Repositories
             Guid customerId,
             CancellationToken cancellationToken = default)
         {
-            var slaThreshold = DateTime.UtcNow.AddMinutes(-30);
+            var slaThreshold = Shared.Common.Helpers.TimeHelper.VietnamNow.AddMinutes(-30);
             return await _dbSet.CountAsync(
                 s => s.CustomerId == customerId && s.Status == null && s.StatusDate < slaThreshold,
                 cancellationToken);

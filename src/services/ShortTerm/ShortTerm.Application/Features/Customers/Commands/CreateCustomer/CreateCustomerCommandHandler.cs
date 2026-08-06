@@ -32,7 +32,7 @@ namespace ShortTerm.Application.Features.Customers.Commands.CreateCustomer
                 Mobile = request.Mobile ?? "",
                 Email = "",
                 Source = (Source)request.Source,
-                CreationDate = DateTime.UtcNow,
+                CreationDate = Shared.Common.Helpers.TimeHelper.VietnamNow,
                 TrainingSystem = Shared.Contracts.Enums.TrainingSystem.ShortTerm,
                 Gender = "",
                 Address = "",

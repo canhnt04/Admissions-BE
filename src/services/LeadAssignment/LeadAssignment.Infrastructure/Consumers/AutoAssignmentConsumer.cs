@@ -48,7 +48,7 @@ namespace LeadAssignment.Infrastructure.Consumers
                 CustomerName = msg.CustomerName,
                 TrainingSystem = msg.TrainingSystem ?? TrainingSystem.ShortTerm,
                 AssigneeId = null, // Pending
-                StatusDate = DateTime.UtcNow
+                StatusDate = Shared.Common.Helpers.TimeHelper.VietnamNow
             });
 
             await _context.SaveChangesAsync(context.CancellationToken);
