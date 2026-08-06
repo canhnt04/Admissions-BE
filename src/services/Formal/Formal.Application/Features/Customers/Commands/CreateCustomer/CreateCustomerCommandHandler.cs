@@ -6,7 +6,7 @@ using Formal.Domain.Entities;
 using MediatR;
 using Shared.Common;
 using MassTransit;
-using Formal.Application.Events;
+using Shared.Contracts.Events.Customer;
 
 namespace Formal.Application.Features.Customers.Commands.CreateCustomer
 {
@@ -39,15 +39,12 @@ namespace Formal.Application.Features.Customers.Commands.CreateCustomer
             await _context.SaveChangesAsync(cancellationToken);
 
             // Publish event cho Auto-Assignment
-            await _publishEndpoint.Publish(new CustomerCreatedEvent
-            {
-                CustomerId = customer.Id,
-                CustomerName = customer.Name,
-                Mobile = customer.Mobile ?? "",
-                TrainingSystem = Shared.Contracts.Enums.TrainingSystem.Formal,
-                CreatedBy = Guid.Empty,
-                CreatedAt = DateTime.UtcNow
-            }, cancellationToken);
+            await _publishEndpoint.Publish(new CustomerCreatedEvent(
+                customer.Id,
+                customer.Name,
+                customer.Mobile ?? "",
+                Shared.Contracts.Enums.TrainingSystem.Formal
+            ), cancellationToken);
 
             return Result<Guid>.Success(customer.Id);
         }

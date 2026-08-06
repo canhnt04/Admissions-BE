@@ -105,8 +105,12 @@ namespace LeadAssignment.Application.Assignments.Commands.AssignPendingLeads
 
                 // Với mỗi consultant, tính CurrentLoad và LastAssignedAt
                 var queueStates = new List<ConsultantQueueState>();
+                var consultantNames = await _userGrpcClient.GetUserFullNamesAsync(activeConsultantIds, cancellationToken);
+
                 foreach (var cid in activeConsultantIds)
                 {
+                    if (!consultantNames.ContainsKey(cid)) continue;
+
                     var currentLoad = await _customerCareStatusRepository.Query()
                         .CountAsync(c => c.AssigneeId == cid && c.Status == LeadStatus.New && c.TrainingSystem == request.TrainingSystem, cancellationToken);
                         
@@ -134,8 +138,6 @@ namespace LeadAssignment.Application.Assignments.Commands.AssignPendingLeads
                 }
 
                 var now = DateTime.UtcNow;
-                
-                var consultantNames = await _userGrpcClient.GetUserFullNamesAsync(activeConsultantIds, cancellationToken);
 
                 int assignedCount = 0;
 

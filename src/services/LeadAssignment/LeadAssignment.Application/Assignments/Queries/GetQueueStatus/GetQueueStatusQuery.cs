@@ -82,6 +82,11 @@ namespace LeadAssignment.Application.Assignments.Queries.GetQueueStatus
             // For each active consultant, calculate their current load
             foreach (var cid in activeConsultantIds)
             {
+                if (!fullNames.ContainsKey(cid))
+                {
+                    continue;
+                }
+
                 var query = _customerCareStatusRepository.Query()
                     .Where(c => c.AssigneeId == cid && c.Status == LeadStatus.New);
                     

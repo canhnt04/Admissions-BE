@@ -48,7 +48,7 @@ namespace Customer.Infrastructure.Seed
                 .RuleFor(c => c.CreationDate, f => f.Date.Recent(30))
                 .RuleFor(c => c.CreatedBy, f => Guid.NewGuid())
                 .RuleFor(c => c.UpdateTime, f => f.Date.Recent(15))
-                .RuleFor(c => c.Assignee, f => f.Random.Bool(0.3f) ? Guid.NewGuid() : null)
+                .RuleFor(c => c.Assignee, f => null)
                 .RuleFor(c => c.Status, f => f.PickRandom<CustomerStatus>())
                 .RuleFor(c => c.EducationLevel, f => f.PickRandom<EducationLevel>())
                 .RuleFor(c => c.EquivalentDegree, f => f.PickRandom<EquivalentDegree>())
