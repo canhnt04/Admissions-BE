@@ -94,9 +94,10 @@ namespace LeadAssignment.Application.Assignments.Commands.ManualAssign
                 {
                     Id = Guid.NewGuid(),
                     CustomerId = request.CustomerId,
-                    CustomerName = customerName,
+                    CustomerName = !string.IsNullOrEmpty(customerName) ? customerName : $"Khách hàng ({request.CustomerId.ToString()[..8]})",
                     TrainingSystem = trainingSystem,
                     AssigneeId = request.AssigneeId,
+                    Status = LeadStatus.New,
                     StatusDate = now
                 });
             }

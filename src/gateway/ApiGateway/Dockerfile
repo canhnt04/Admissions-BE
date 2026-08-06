@@ -6,17 +6,17 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["src/Crm.ApiGateway/Crm.ApiGateway.csproj", "src/Crm.ApiGateway/"]
-RUN dotnet restore "./src/Crm.ApiGateway/Crm.ApiGateway.csproj"
+COPY ["src/gateway/ApiGateway/ApiGateway.csproj", "src/gateway/ApiGateway/"]
+RUN dotnet restore "./src/gateway/ApiGateway/ApiGateway.csproj"
 COPY src/ src/
-WORKDIR "/src/src/Crm.ApiGateway"
-RUN dotnet build "./Crm.ApiGateway.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/src/gateway/ApiGateway"
+RUN dotnet build "./ApiGateway.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./Crm.ApiGateway.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./ApiGateway.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Crm.ApiGateway.dll"]
+ENTRYPOINT ["dotnet", "ApiGateway.dll"]

@@ -43,7 +43,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
         public async Task<Result<List<ActiveSlaDto>>> Handle(GetActiveSlaQuery request, CancellationToken cancellationToken)
         {
             var query = _context.CustomerCareStatuses
-                .Where(s => s.AssigneeId != null && (s.Status == null || s.Status == LeadStatus.New));
+                .Where(s => s.Status == null || s.Status == LeadStatus.New);
 
             if (request.TrainingSystem.HasValue)
                 query = query.Where(s => s.TrainingSystem == request.TrainingSystem.Value);
@@ -59,12 +59,12 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
                     s.CustomerId,
                     s.CustomerName,
                     s.TrainingSystem,
-                    AssigneeId = s.AssigneeId.Value,
+                    AssigneeId = s.AssigneeId,
                     StatusDate = s.StatusDate
                 })
                 .ToListAsync(cancellationToken);
 
-            var assigneeIds = rawSlaList.Select(s => s.AssigneeId).Distinct().ToList();
+            var assigneeIds = rawSlaList.Where(s => s.AssigneeId.HasValue).Select(s => s.AssigneeId!.Value).Distinct().ToList();
             var fullNames = await _userGrpcClient.GetUserFullNamesAsync(assigneeIds, cancellationToken);
 
             var now = Shared.Common.Helpers.TimeHelper.VietnamNow;
@@ -74,10 +74,10 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
             {
                 Id = s.Id,
                 CustomerId = s.CustomerId,
-                CustomerName = s.CustomerName,
+                CustomerName = !string.IsNullOrEmpty(s.CustomerName) ? s.CustomerName : $"Khách hàng ({s.CustomerId.ToString()[..8]})",
                 TrainingSystem = s.TrainingSystem.ToString() ?? string.Empty,
-                AssigneeId = s.AssigneeId,
-                AssigneeName = fullNames.TryGetValue(s.AssigneeId, out var name) ? name : "User",
+                AssigneeId = s.AssigneeId ?? Guid.Empty,
+                AssigneeName = s.AssigneeId.HasValue && fullNames.TryGetValue(s.AssigneeId.Value, out var name) ? name : "Chưa phân công",
                 AssignedAt = s.StatusDate ?? now,
                 Deadline = (s.StatusDate ?? now).AddMinutes(30),
                 RemainingMinutes = (int)((s.StatusDate ?? now).AddMinutes(30) - now).TotalMinutes,

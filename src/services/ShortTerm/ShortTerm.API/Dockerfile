@@ -6,13 +6,19 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["src/ShortTerm.API/ShortTerm.API.csproj", "src/ShortTerm.API/"]
-COPY ["src/Crm.Infrastructure/Crm.Infrastructure.csproj", "src/Crm.Infrastructure/"]
-COPY ["src/Crm.Application/Crm.Application.csproj", "src/Crm.Application/"]
-COPY ["src/Crm.Domain/Crm.Domain.csproj", "src/Crm.Domain/"]
-RUN dotnet restore "./src/ShortTerm.API/ShortTerm.API.csproj"
+COPY ["src/services/ShortTerm/ShortTerm.API/ShortTerm.API.csproj", "src/services/ShortTerm/ShortTerm.API/"]
+COPY ["src/services/ShortTerm/ShortTerm.Infrastructure/ShortTerm.Infrastructure.csproj", "src/services/ShortTerm/ShortTerm.Infrastructure/"]
+COPY ["src/services/ShortTerm/ShortTerm.Application/ShortTerm.Application.csproj", "src/services/ShortTerm/ShortTerm.Application/"]
+COPY ["src/services/ShortTerm/ShortTerm.Domain/ShortTerm.Domain.csproj", "src/services/ShortTerm/ShortTerm.Domain/"]
+COPY ["src/services/Customer/Customer.Domain/Customer.Domain.csproj", "src/services/Customer/Customer.Domain/"]
+COPY ["src/shared/Shared.Authentication/Shared.Authentication.csproj", "src/shared/Shared.Authentication/"]
+COPY ["src/shared/Shared.Logging/Shared.Logging.csproj", "src/shared/Shared.Logging/"]
+COPY ["src/shared/Shared.Common/Shared.Common.csproj", "src/shared/Shared.Common/"]
+COPY ["src/shared/Shared.Contracts/Shared.Contracts.csproj", "src/shared/Shared.Contracts/"]
+COPY ["src/shared/Shared.Messaging/Shared.Messaging.csproj", "src/shared/Shared.Messaging/"]
+RUN dotnet restore "./src/services/ShortTerm/ShortTerm.API/ShortTerm.API.csproj"
 COPY src/ src/
-WORKDIR "/src/src/ShortTerm.API"
+WORKDIR "/src/src/services/ShortTerm/ShortTerm.API"
 RUN dotnet build "./ShortTerm.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish

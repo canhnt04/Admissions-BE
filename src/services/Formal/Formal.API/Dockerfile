@@ -6,13 +6,19 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["src/Formal.API/Formal.API.csproj", "src/Formal.API/"]
-COPY ["src/Crm.Infrastructure/Crm.Infrastructure.csproj", "src/Crm.Infrastructure/"]
-COPY ["src/Crm.Application/Crm.Application.csproj", "src/Crm.Application/"]
-COPY ["src/Crm.Domain/Crm.Domain.csproj", "src/Crm.Domain/"]
-RUN dotnet restore "./src/Formal.API/Formal.API.csproj"
+COPY ["src/services/Formal/Formal.API/Formal.API.csproj", "src/services/Formal/Formal.API/"]
+COPY ["src/services/Formal/Formal.Infrastructure/Formal.Infrastructure.csproj", "src/services/Formal/Formal.Infrastructure/"]
+COPY ["src/services/Formal/Formal.Application/Formal.Application.csproj", "src/services/Formal/Formal.Application/"]
+COPY ["src/services/Formal/Formal.Domain/Formal.Domain.csproj", "src/services/Formal/Formal.Domain/"]
+COPY ["src/services/Customer/Customer.Domain/Customer.Domain.csproj", "src/services/Customer/Customer.Domain/"]
+COPY ["src/shared/Shared.Authentication/Shared.Authentication.csproj", "src/shared/Shared.Authentication/"]
+COPY ["src/shared/Shared.Logging/Shared.Logging.csproj", "src/shared/Shared.Logging/"]
+COPY ["src/shared/Shared.Common/Shared.Common.csproj", "src/shared/Shared.Common/"]
+COPY ["src/shared/Shared.Contracts/Shared.Contracts.csproj", "src/shared/Shared.Contracts/"]
+COPY ["src/shared/Shared.Messaging/Shared.Messaging.csproj", "src/shared/Shared.Messaging/"]
+RUN dotnet restore "./src/services/Formal/Formal.API/Formal.API.csproj"
 COPY src/ src/
-WORKDIR "/src/src/Formal.API"
+WORKDIR "/src/src/services/Formal/Formal.API"
 RUN dotnet build "./Formal.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish

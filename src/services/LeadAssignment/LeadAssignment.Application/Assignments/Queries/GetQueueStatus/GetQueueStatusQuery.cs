@@ -97,13 +97,8 @@ namespace LeadAssignment.Application.Assignments.Queries.GetQueueStatus
             // For each active consultant, calculate their current load
             foreach (var cid in consultantIds)
             {
-                if (!fullNames.ContainsKey(cid))
-                {
-                    continue;
-                }
-
                 var query = _customerCareStatusRepository.Query()
-                    .Where(c => c.AssigneeId == cid && c.Status == LeadStatus.New);
+                    .Where(c => c.AssigneeId == cid && (c.Status == null || c.Status == LeadStatus.New));
                     
                 if (request.TrainingSystem.HasValue)
                 {
@@ -122,7 +117,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetQueueStatus
                     Id = Guid.NewGuid(),
                     TrainingSystem = request.TrainingSystem?.ToString(),
                     ConsultantId = cid,
-                    ConsultantName = fullNames[cid],
+                    ConsultantName = fullNames.TryGetValue(cid, out var name) && !string.IsNullOrEmpty(name) ? name : $"Nhân viên ({cid.ToString()[..8]})",
                     OrderIndex = 0,
                     CurrentLoad = currentLoad,
                     MaxLoad = 10,
