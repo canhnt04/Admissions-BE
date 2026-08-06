@@ -31,6 +31,7 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDto
                 IdentificationNumber = u.IdentificationNumber,
                 Role = u.Role,
                 TeamId = u.TeamId,
+                RoleTeam = u.Team != null ? u.Team.RoleTeam : null,
                 ProfilePicUrl = u.ProfilePicUrl,
                 IsActived = u.IsActived,
                 UserInternalId = u.UserInternalId

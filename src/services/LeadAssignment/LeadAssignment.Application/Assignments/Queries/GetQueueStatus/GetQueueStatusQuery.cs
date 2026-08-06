@@ -49,38 +49,50 @@ namespace LeadAssignment.Application.Assignments.Queries.GetQueueStatus
 
         public async Task<Result<List<QueueStatusDto>>> Handle(GetQueueStatusQuery request, CancellationToken cancellationToken)
         {
-            List<Guid> activeConsultantIds;
+            // Retrieve recent check-in/check-out state from AuditLog.
+            var tenDaysAgo = DateTime.UtcNow.AddDays(-10);
+            var latestLogs = await _auditLogRepository.Query()
+                .Where(a => a.RecordEntity == RecordEntity.User &&
+                       a.Action == LeadAssignment.Domain.Enums.Action.Update &&
+                       (a.Detail.Contains("CHECK_IN") || a.Detail.Contains("CHECK_OUT")) &&
+                       a.CreationDate > tenDaysAgo)
+                .GroupBy(a => a.UserId)
+                .Select(g => g.OrderByDescending(x => x.CreationDate).FirstOrDefault())
+                .ToListAsync(cancellationToken);
+
+            var activeConsultantLogs = latestLogs
+                .Where(l => l != null && l.Detail.Contains("CHECK_IN"))
+                .Select(l => l!);
+
+            if (request.TrainingSystem.HasValue)
+            {
+                var systemStr = request.TrainingSystem.Value.ToString();
+                activeConsultantLogs = activeConsultantLogs.Where(l => l.Detail.Contains(systemStr));
+            }
+
+            var activeConsultantIds = activeConsultantLogs
+                .Select(l => l.UserId)
+                .Distinct()
+                .ToList();
+
+            List<Guid> consultantIds;
 
             if (request.ConsultantId.HasValue)
             {
                 // Only get for the specific consultant
-                activeConsultantIds = new List<Guid> { request.ConsultantId.Value };
+                consultantIds = new List<Guid> { request.ConsultantId.Value };
             }
             else
             {
-                // Retrieve all active consultants from AuditLog
-                var tenDaysAgo = DateTime.UtcNow.AddDays(-10);
-                var activeLogs = await _auditLogRepository.Query()
-                    .Where(a => a.RecordEntity == RecordEntity.User && 
-                           a.Action == LeadAssignment.Domain.Enums.Action.Update &&
-                           (a.Detail.Contains("CHECK_IN") || a.Detail.Contains("CHECK_OUT")) &&
-                           a.CreationDate > tenDaysAgo)
-                    .GroupBy(a => a.UserId)
-                    .Select(g => g.OrderByDescending(x => x.CreationDate).FirstOrDefault())
-                    .ToListAsync(cancellationToken);
-
-                activeConsultantIds = activeLogs
-                    .Where(l => l != null && l.Detail.Contains("CHECK_IN"))
-                    .Select(l => l.UserId)
-                    .ToList();
+                consultantIds = activeConsultantIds;
             }
                 
-            var fullNames = await _userGrpcClient.GetUserFullNamesAsync(activeConsultantIds, cancellationToken);
+            var fullNames = await _userGrpcClient.GetUserFullNamesAsync(consultantIds, cancellationToken);
             
             var result = new List<QueueStatusDto>();
             
             // For each active consultant, calculate their current load
-            foreach (var cid in activeConsultantIds)
+            foreach (var cid in consultantIds)
             {
                 if (!fullNames.ContainsKey(cid))
                 {
@@ -107,16 +119,27 @@ namespace LeadAssignment.Application.Assignments.Queries.GetQueueStatus
                     Id = Guid.NewGuid(),
                     TrainingSystem = request.TrainingSystem?.ToString() ?? "All",
                     ConsultantId = cid,
-                    ConsultantName = fullNames[cid],
+                    ConsultantName = fullNames.TryGetValue(cid, out var name) ? name : "User",
                     OrderIndex = 0,
                     CurrentLoad = currentLoad,
                     MaxLoad = 10,
-                    IsActive = true, 
+                    IsActive = activeConsultantIds.Contains(cid), 
                     LastAssignedAt = lastAssignment?.AssignmentDate
                 });
             }
 
-            return Result<List<QueueStatusDto>>.Success(result);
+            // Sort queue list by LastAssignedAt (nulls/waiting longest first) and set OrderIndex
+            var sorted = result
+                .OrderBy(x => x.LastAssignedAt.HasValue)
+                .ThenBy(x => x.LastAssignedAt)
+                .ToList();
+
+            for (int i = 0; i < sorted.Count; i++)
+            {
+                sorted[i].OrderIndex = i + 1;
+            }
+
+            return Result<List<QueueStatusDto>>.Success(sorted);
         }
     }
 }

@@ -487,6 +487,8 @@ $RECYCLE.BIN/
 # Local configurations
 appsettings.Local.json
 appsettings.*.Local.json
+run.sh
+stop.sh
 
 # Ignore environment-specific appsettings
 appsettings.Development.json
@@ -494,4 +496,5 @@ appsettings.Production.json
 
 # Ignore launchSettings (optional, can remove if you want to share profiles)
 **/Properties/launchSettings.json
-
+# Ignore Rider/IDE process ID files
+.run/
