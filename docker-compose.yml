@@ -81,6 +81,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=LeadAssignmentDb;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;
       - RabbitMQ__Host=rabbitmq
+      - GrpcConfig__AuthServiceUrl=http://auth-api:8081
     depends_on:
       - sqlserver
       - rabbitmq

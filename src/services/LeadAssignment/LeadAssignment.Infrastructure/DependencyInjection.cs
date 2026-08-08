@@ -39,7 +39,7 @@ namespace LeadAssignment.Infrastructure
 
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
-            var authServiceUrl = configuration["GrpcConfig:AuthServiceUrl"] ?? "http://auth-api:8080";
+            var authServiceUrl = configuration["GrpcConfig:AuthServiceUrl"] ?? "http://auth-api:8081";
             services.AddGrpcClient<Shared.Protos.Users.UserService.UserServiceClient>(o =>
             {
                 o.Address = new Uri(authServiceUrl);

@@ -1,18 +1,25 @@
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 USER app
 WORKDIR /app
 EXPOSE 8080
+EXPOSE 8081
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["src/Auth.API/Auth.API.csproj", "src/Auth.API/"]
-COPY ["src/Crm.Infrastructure/Crm.Infrastructure.csproj", "src/Crm.Infrastructure/"]
-COPY ["src/Crm.Application/Crm.Application.csproj", "src/Crm.Application/"]
-COPY ["src/Crm.Domain/Crm.Domain.csproj", "src/Crm.Domain/"]
-RUN dotnet restore "./src/Auth.API/Auth.API.csproj"
+COPY ["src/services/Auth/Auth.API/Auth.API.csproj", "src/services/Auth/Auth.API/"]
+COPY ["src/services/Auth/Auth.Infrastructure/Auth.Infrastructure.csproj", "src/services/Auth/Auth.Infrastructure/"]
+COPY ["src/services/Auth/Auth.Application/Auth.Application.csproj", "src/services/Auth/Auth.Application/"]
+COPY ["src/services/Auth/Auth.Domain/Auth.Domain.csproj", "src/services/Auth/Auth.Domain/"]
+COPY ["src/shared/Shared.Authentication/Shared.Authentication.csproj", "src/shared/Shared.Authentication/"]
+COPY ["src/shared/Shared.Logging/Shared.Logging.csproj", "src/shared/Shared.Logging/"]
+COPY ["src/shared/Shared.Common/Shared.Common.csproj", "src/shared/Shared.Common/"]
+COPY ["src/shared/Shared.Protos/Shared.Protos.csproj", "src/shared/Shared.Protos/"]
+COPY ["src/shared/Shared.Contracts/Shared.Contracts.csproj", "src/shared/Shared.Contracts/"]
+COPY ["src/shared/Shared.Messaging/Shared.Messaging.csproj", "src/shared/Shared.Messaging/"]
+RUN dotnet restore "./src/services/Auth/Auth.API/Auth.API.csproj"
 COPY src/ src/
-WORKDIR "/src/src/Auth.API"
+WORKDIR "/src/src/services/Auth/Auth.API"
 RUN dotnet build "./Auth.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish

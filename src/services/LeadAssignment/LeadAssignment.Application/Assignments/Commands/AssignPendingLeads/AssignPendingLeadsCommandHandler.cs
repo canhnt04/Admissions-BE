@@ -95,7 +95,10 @@ namespace LeadAssignment.Application.Assignments.Commands.AssignPendingLeads
                     .ToList();
 
                 var activeConsultantIds = activeLogs
-                    .Where(l => l != null && l.Detail.Contains("CHECK_IN"))
+                    .Where(l => l != null && 
+                           l.Detail != null && 
+                           l.Detail.ToLower().Contains("check_in") && 
+                           l.Detail.ToLower().Contains($"nhánh {request.TrainingSystem.ToString().ToLower()}"))
                     .Select(l => l.UserId)
                     .ToList();
 
@@ -112,8 +115,6 @@ namespace LeadAssignment.Application.Assignments.Commands.AssignPendingLeads
 
                 foreach (var cid in activeConsultantIds)
                 {
-                    if (!consultantNames.ContainsKey(cid)) continue;
-
                     var currentLoad = await _customerCareStatusRepository.Query()
                         .CountAsync(c => c.AssigneeId == cid && c.Status == LeadStatus.New && c.TrainingSystem == request.TrainingSystem, cancellationToken);
                         
@@ -156,7 +157,9 @@ namespace LeadAssignment.Application.Assignments.Commands.AssignPendingLeads
                     // Chọn người có LastAssignedAt cũ nhất
                     var selectedQueue = availableQueues.OrderBy(q => q.LastAssignedAt).First();
 
-                    var consultantName = consultantNames[selectedQueue.ConsultantId];
+                    var consultantName = consultantNames.TryGetValue(selectedQueue.ConsultantId, out var name) && !string.IsNullOrEmpty(name)
+                        ? name 
+                        : $"Nhân viên ({selectedQueue.ConsultantId.ToString()[..8]})";
                     
                     int multiplier = Math.Min(_slaSettings.Value.MaxSlaMultiplier, Math.Max(1, selectedQueue.CurrentLoad + 1));
                     var dynamicSlaMinutes = _slaSettings.Value.SlaDeadlineMinutes * multiplier;
