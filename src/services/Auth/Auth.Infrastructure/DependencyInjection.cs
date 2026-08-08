@@ -104,6 +104,7 @@ namespace Auth.Infrastructure
                             IsActived = true,
                             UserInternalId = "ADMIN001",
                             ProfilePicUrl = "",
+                            Email = "admin@admin.com",
                         });
                     }
 
