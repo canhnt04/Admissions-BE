@@ -51,12 +51,12 @@ namespace LeadAssignment.Application.Assignments.Queries.GetAssignmentReport
 
             // Lấy tên tư vấn viên qua gRPC
             var consultantIds = grouped.Select(g => g.ConsultantId).Distinct().ToList();
-            var fullNames = await _userGrpcClient.GetUserFullNamesAsync(consultantIds, cancellationToken);
+            var userInfos = await _userGrpcClient.GetUsersAsync(consultantIds, cancellationToken);
 
             var report = grouped.Select(g => new AssignmentReportDto
             {
                 ConsultantId = g.ConsultantId,
-                ConsultantName = fullNames[g.ConsultantId],
+                ConsultantName = userInfos.TryGetValue(g.ConsultantId, out var info) ? info.FullName : string.Empty,
                 TotalAssigned = g.TotalAssigned,
                 SlaFulfilled = g.SlaFulfilled,
                 SlaViolated = g.SlaViolated,

@@ -198,14 +198,16 @@ namespace LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolat
             }
 
             // Resolve tên NV mới qua gRPC (batch call)
-            var resolvedFullNames = await _userGrpcClient.GetUserFullNamesAsync(
-                new[] { nextAssigneeId.Value }, cancellationToken);
-            var newConsultantName = resolvedFullNames[nextAssigneeId.Value];
+            var resolvedUserInfos = await _userGrpcClient.GetUsersAsync(
+                new[] { nextAssigneeId.Value, request.ViolatedAssigneeId }, cancellationToken);
+            var newConsultantName = resolvedUserInfos.TryGetValue(nextAssigneeId.Value, out var ni) ? ni.FullName : string.Empty;
+            var nextAssigneeEmail = resolvedUserInfos.TryGetValue(nextAssigneeId.Value, out var ne) ? ne.Email : string.Empty;
+            var violatedAssigneeEmail = resolvedUserInfos.TryGetValue(request.ViolatedAssigneeId, out var ve) ? ve.Email : string.Empty;
 
             if (isEscalatedStrike)
             {
                 await _emailSender.SendEmailAsync(
-                    $"{nextAssigneeId.Value}@system.local",
+                    nextAssigneeEmail,
                     "CẢNH BÁO ESCALATION CẤP CAO: Vi phạm SLA Quản lý",
                     $"<p>Khách hàng {customerName} đang trong hàng đợi của Quản lý nhưng đã quá hạn SLA xử lý! Vui lòng liên hệ gấp.</p>",
                     cancellationToken);
@@ -214,11 +216,11 @@ namespace LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolat
             {
                 // Resolve names of violating consultants for notification
                 var violatingAssigneeIds = pastAssignments.Select(x => x.AssigneeId).Distinct().ToList();
-                var violatingFullNames = await _userGrpcClient.GetUserFullNamesAsync(violatingAssigneeIds, cancellationToken);
-                var namesStr = string.Join(", ", violatingAssigneeIds.Select(id => violatingFullNames[id]));
+                var violatingUserInfos = await _userGrpcClient.GetUsersAsync(violatingAssigneeIds, cancellationToken);
+                var namesStr = string.Join(", ", violatingAssigneeIds.Select(id => violatingUserInfos.TryGetValue(id, out var v) ? v.FullName : string.Empty));
 
                 await _emailSender.SendEmailAsync(
-                    $"{nextAssigneeId.Value}@system.local",
+                    nextAssigneeEmail,
                     "CẢNH BÁO ESCALATION: Khách hàng vi phạm SLA 3 lần",
                     $"<p>Lead <b>{customerName}</b> đã bị hoàn trả 3 lần từ nhân viên [{namesStr}]. Vui lòng xử lý gấp.</p>",
                     cancellationToken);
@@ -275,7 +277,7 @@ namespace LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolat
 
 
             await _emailSender.SendEmailAsync(
-                $"{request.ViolatedAssigneeId}@system.local",
+                violatedAssigneeEmail,
                 "CẢNH BÁO: Vi phạm SLA Khách hàng",
                 $"<p>Bạn đã vi phạm SLA khi không liên hệ khách hàng {customerName} trong thời gian quy định. Lead này đã bị hệ thống thu hồi tự động.</p>",
                 cancellationToken);

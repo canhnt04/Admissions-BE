@@ -111,7 +111,7 @@ namespace LeadAssignment.Application.Assignments.Commands.AssignPendingLeads
 
                 // Với mỗi consultant, tính CurrentLoad và LastAssignedAt
                 var queueStates = new List<ConsultantQueueState>();
-                var consultantNames = await _userGrpcClient.GetUserFullNamesAsync(activeConsultantIds, cancellationToken);
+                var userInfos = await _userGrpcClient.GetUsersAsync(activeConsultantIds, cancellationToken);
 
                 foreach (var cid in activeConsultantIds)
                 {
@@ -157,9 +157,12 @@ namespace LeadAssignment.Application.Assignments.Commands.AssignPendingLeads
                     // Chọn người có LastAssignedAt cũ nhất
                     var selectedQueue = availableQueues.OrderBy(q => q.LastAssignedAt).First();
 
-                    var consultantName = consultantNames.TryGetValue(selectedQueue.ConsultantId, out var name) && !string.IsNullOrEmpty(name)
-                        ? name 
+                    var consultantName = userInfos.TryGetValue(selectedQueue.ConsultantId, out var info) && !string.IsNullOrEmpty(info.FullName)
+                        ? info.FullName 
                         : $"Nhân viên ({selectedQueue.ConsultantId.ToString()[..8]})";
+                    var email = userInfos.TryGetValue(selectedQueue.ConsultantId, out var i) && !string.IsNullOrEmpty(i.Email)
+                        ? i.Email
+                        : $"{selectedQueue.ConsultantId}@system.local";
                     
                     int multiplier = Math.Min(_slaSettings.Value.MaxSlaMultiplier, Math.Max(1, selectedQueue.CurrentLoad + 1));
                     var dynamicSlaMinutes = _slaSettings.Value.SlaDeadlineMinutes * multiplier;
@@ -204,7 +207,7 @@ namespace LeadAssignment.Application.Assignments.Commands.AssignPendingLeads
 
                     // Gửi email nhắc nhở
                     await _emailSender.SendEmailAsync(
-                        $"{selectedQueue.ConsultantId}@system.local",
+                        email,
                         $"Bạn được giao lead mới: {lead.CustomerName}",
                         $"<p>Hệ thống vừa tự động giao khách hàng <b>{lead.CustomerName}</b> cho bạn. Vui lòng liên hệ với khách hàng trước thời hạn {deadline:HH:mm:ss dd/MM/yyyy}.</p>",
                         cancellationToken);

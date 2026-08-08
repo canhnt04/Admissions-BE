@@ -98,12 +98,12 @@ namespace LeadAssignment.Infrastructure.Services
             _logger.LogWarning("Phát hiện {Count} SLA violations", violations.Count);
 
             var assigneeIds = violations.Select(v => v.AssigneeId!.Value).Distinct().ToList();
-            var fullNames = await userGrpcClient.GetUserFullNamesAsync(assigneeIds, cancellationToken);
+            var userInfos = await userGrpcClient.GetUsersAsync(assigneeIds, cancellationToken);
 
             foreach (var sla in violations)
             {
                 var assigneeId = sla.AssigneeId!.Value;
-                var assigneeName = fullNames[assigneeId];
+                var assigneeName = userInfos.TryGetValue(assigneeId, out var info) ? info.FullName : string.Empty;
                 var assignedAt = sla.StatusDate ?? now;
 
                 _logger.LogWarning(
@@ -133,6 +133,7 @@ namespace LeadAssignment.Infrastructure.Services
             var auditLogRepository = scope.ServiceProvider.GetRequiredService<IAuditLogRepository>();
             var context = scope.ServiceProvider.GetRequiredService<IAssignmentDbContext>();
             var emailSender = scope.ServiceProvider.GetRequiredService<LeadAssignment.Application.Common.Interfaces.IEmailSender>();
+            var userGrpcClient = scope.ServiceProvider.GetRequiredService<IUserGrpcClient>();
             var slaSettings = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<LeadAssignment.Application.Common.Models.SlaSettings>>().Value;
             var now = Shared.Common.Helpers.TimeHelper.VietnamNow;
 
@@ -167,6 +168,9 @@ namespace LeadAssignment.Infrastructure.Services
 
             if (warnings.Count == 0) return;
 
+            var assigneeIdsForWarnings = warnings.Select(w => w.Sla.AssigneeId!.Value).Distinct().ToList();
+            var userInfoForWarnings = await userGrpcClient.GetUsersAsync(assigneeIdsForWarnings, cancellationToken);
+
             foreach (var item in warnings)
             {
                 var sla = item.Sla;
@@ -191,8 +195,10 @@ namespace LeadAssignment.Infrastructure.Services
                     });
                     await context.SaveChangesAsync(cancellationToken);
                     
+                    var email = userInfoForWarnings.TryGetValue(assigneeId, out var ui) && !string.IsNullOrEmpty(ui.Email) ? ui.Email : $"{assigneeId}@system.local";
+                    
                     await emailSender.SendEmailAsync(
-                        $"{assigneeId}",
+                        email,
                         $"[Cảnh báo] Bạn có 1 Lead chưa xử lý sắp hết hạn",
                         $"<p>Khách hàng {sla.CustomerName} sắp hết hạn SLA vào lúc {deadline:HH:mm:ss dd/MM/yyyy}. Vui lòng xử lý ngay lập tức.</p>",
                         cancellationToken);

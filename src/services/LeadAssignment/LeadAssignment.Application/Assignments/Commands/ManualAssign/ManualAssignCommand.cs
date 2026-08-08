@@ -66,10 +66,11 @@ namespace LeadAssignment.Application.Assignments.Commands.ManualAssign
             var trainingSystem = latestStatus?.TrainingSystem;
 
             // Resolve tên tư vấn viên qua gRPC
-            var fullNames = await _userGrpcClient.GetUserFullNamesAsync(
+            var userInfos = await _userGrpcClient.GetUsersAsync(
                 new[] { request.AssigneeId, request.AssignedById }.Distinct(),
                 cancellationToken);
-            var assigneeName = fullNames[request.AssigneeId];
+            var assigneeName = userInfos.TryGetValue(request.AssigneeId, out var info) ? info.FullName : string.Empty;
+            var assigneeEmail = userInfos.TryGetValue(request.AssigneeId, out var i) ? i.Email : string.Empty;
 
             var now = Shared.Common.Helpers.TimeHelper.VietnamNow;
 
@@ -140,7 +141,7 @@ namespace LeadAssignment.Application.Assignments.Commands.ManualAssign
             }, cancellationToken);
 
             await _emailSender.SendEmailAsync(
-                $"{request.AssigneeId}@system.local",
+                assigneeEmail,
                 "Bạn được giao khách hàng thủ công",
                 $"<p>Chào bạn, bạn được phân bổ thủ công một khách hàng mới: {customerName}. Vui lòng liên hệ và chốt sales trước {deadline:HH:mm}!</p>",
                 cancellationToken);

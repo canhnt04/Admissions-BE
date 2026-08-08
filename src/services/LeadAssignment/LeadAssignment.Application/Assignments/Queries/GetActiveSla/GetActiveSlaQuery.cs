@@ -65,7 +65,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
                 .ToListAsync(cancellationToken);
 
             var assigneeIds = rawSlaList.Where(s => s.AssigneeId.HasValue).Select(s => s.AssigneeId!.Value).Distinct().ToList();
-            var fullNames = await _userGrpcClient.GetUserFullNamesAsync(assigneeIds, cancellationToken);
+            var userInfos = await _userGrpcClient.GetUsersAsync(assigneeIds, cancellationToken);
 
             var now = Shared.Common.Helpers.TimeHelper.VietnamNow;
             
@@ -93,8 +93,8 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
                     CustomerId = s.CustomerId,
                     CustomerName = s.CustomerName,
                     TrainingSystem = s.TrainingSystem.ToString() ?? string.Empty,
-                    AssigneeId = s.AssigneeId,
-                    AssigneeName = fullNames.TryGetValue(s.AssigneeId, out var name) ? name : "User",
+                    AssigneeId = s.AssigneeId ?? Guid.Empty,
+                    AssigneeName = s.AssigneeId.HasValue && userInfos.TryGetValue(s.AssigneeId.Value, out var info) ? info.FullName : "User",
                     AssignedAt = assignedAt,
                     Deadline = deadline,
                     RemainingMinutes = (int)(deadline - now).TotalMinutes,

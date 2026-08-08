@@ -90,7 +90,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetQueueStatus
                 consultantIds = activeConsultantIds;
             }
                 
-            var fullNames = await _userGrpcClient.GetUserFullNamesAsync(consultantIds, cancellationToken);
+            var userInfos = await _userGrpcClient.GetUsersAsync(consultantIds, cancellationToken);
             
             var result = new List<QueueStatusDto>();
             
@@ -117,7 +117,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetQueueStatus
                     Id = Guid.NewGuid(),
                     TrainingSystem = request.TrainingSystem?.ToString(),
                     ConsultantId = cid,
-                    ConsultantName = fullNames.TryGetValue(cid, out var name) && !string.IsNullOrEmpty(name) ? name : $"Nhân viên ({cid.ToString()[..8]})",
+                    ConsultantName = userInfos.TryGetValue(cid, out var info) && !string.IsNullOrEmpty(info.FullName) ? info.FullName : $"Nhân viên ({cid.ToString()[..8]})",
                     OrderIndex = 0,
                     CurrentLoad = currentLoad,
                     MaxLoad = 10,

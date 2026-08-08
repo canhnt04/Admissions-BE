@@ -41,6 +41,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result>
             PasswordSalt = passwordSalt,
             FullName = request.FullName,
             Mobile = request.Mobile,
+            Email = request.Email,
             IdentificationNumber = request.IdentificationNumber,
             Role = Role.User,
             ProfilePicUrl = "",
@@ -54,7 +55,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result>
         await _eventPublisher.PublishUserSyncAsync(
             user.Id,
             user.FullName,
-            "", // Add Email if available or empty string
+            user.Email,
             user.Mobile,
             (int)user.Role,
             user.TeamId,

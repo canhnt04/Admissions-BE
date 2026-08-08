@@ -26,6 +26,7 @@ namespace Auth.Domain.Entities
         // Mã nội bộ
         public string UserInternalId { get; set; }
         public string Mobile { get; set; }
+        public string Email { get; set; }
         public string ProfilePicUrl { get; set; }
         public bool IsActived { get; set; }
 

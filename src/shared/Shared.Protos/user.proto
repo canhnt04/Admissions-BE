@@ -12,6 +12,11 @@ message GetUsersRequest {
   repeated string userIds = 1;
 }
 
+message UserGrpcDto {
+  string fullName = 1;
+  string email = 2;
+}
+
 message GetUsersResponse {
-  map<string, string> userMap = 1; // Map<UserId, FullName>
+  map<string, UserGrpcDto> userMap = 1; // Map<UserId, UserGrpcDto>
 }

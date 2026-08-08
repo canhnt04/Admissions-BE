@@ -18,11 +18,11 @@ namespace LeadAssignment.Infrastructure.Services
             _client = client;
         }
 
-        public async Task<Dictionary<Guid, string>> GetUserFullNamesAsync(IEnumerable<Guid> userIds, CancellationToken cancellationToken = default)
+        public async Task<Dictionary<Guid, (string FullName, string Email)>> GetUsersAsync(IEnumerable<Guid> userIds, CancellationToken cancellationToken = default)
         {
             var distinctIds = userIds.Distinct().Select(id => id.ToString()).ToList();
             if (!distinctIds.Any())
-                return new Dictionary<Guid, string>();
+                return new Dictionary<Guid, (string FullName, string Email)>();
 
             var request = new GetUsersRequest();
             request.UserIds.AddRange(distinctIds);
@@ -30,12 +30,12 @@ namespace LeadAssignment.Infrastructure.Services
             try
             {
                 var response = await _client.GetUsersByIdsAsync(request, cancellationToken: cancellationToken);
-                var result = new Dictionary<Guid, string>();
+                var result = new Dictionary<Guid, (string FullName, string Email)>();
                 foreach (var kvp in response.UserMap)
                 {
                     if (Guid.TryParse(kvp.Key, out var guid))
                     {
-                        result[guid] = kvp.Value;
+                        result[guid] = (kvp.Value.FullName, kvp.Value.Email);
                     }
                 }
                 return result;
@@ -44,7 +44,7 @@ namespace LeadAssignment.Infrastructure.Services
             {
                 Console.WriteLine($"[GRPC ERROR] {ex.Message}");
                 Console.WriteLine(ex.ToString());
-                return new Dictionary<Guid, string>();
+                return new Dictionary<Guid, (string FullName, string Email)>();
             }   
         }
     }

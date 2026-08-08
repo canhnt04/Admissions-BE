@@ -31,7 +31,7 @@ namespace Auth.API.Services
 
             var users = await _context.Users
                 .Where(u => userIds.Contains(u.Id))
-                .ToDictionaryAsync(u => u.Id.ToString(), u => u.FullName, context.CancellationToken);
+                .ToDictionaryAsync(u => u.Id.ToString(), u => new UserGrpcDto { FullName = u.FullName, Email = u.Email ?? string.Empty }, context.CancellationToken);
 
             var response = new GetUsersResponse();
             foreach (var kvp in users)
