@@ -14,6 +14,7 @@ using Shared.Common.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Common.Controllers;
 
 namespace LeadAssignment.API.Controllers
 {
@@ -23,7 +24,7 @@ namespace LeadAssignment.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(Policy = "RequireCustomerCareOrAdmin")]
-    public class AssignmentController : ControllerBase
+    public class AssignmentController : BaseApiController
     {
         private readonly IMediator _mediator;
         private readonly ICurrentUserService _currentUserService;
@@ -67,8 +68,7 @@ namespace LeadAssignment.API.Controllers
                 TrainingSystem = trainingSystem
             };
             var result = await _mediator.Send(command);
-            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
-            return Ok(new { message = $"Nhân viên {trainingSystem} đã check-in thành công." });
+            return HandleResult(result);
         }
 
         /// <summary>
@@ -82,8 +82,7 @@ namespace LeadAssignment.API.Controllers
 
             var command = new CheckOutCommand { ConsultantId = _currentUserService.UserId.Value };
             var result = await _mediator.Send(command);
-            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
-            return Ok(new { message = "Đã tắt trạng thái nhận khách hàng" });
+            return HandleResult(result);
         }
 
         /// <summary>
@@ -97,8 +96,7 @@ namespace LeadAssignment.API.Controllers
 
             command.AssignedById = _currentUserService.UserId.Value;
             var result = await _mediator.Send(command);
-            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
-            return Ok(new { message = "Đã giao thủ công khách hàng thành công" });
+            return HandleResult(result);
         }
 
 
@@ -110,8 +108,7 @@ namespace LeadAssignment.API.Controllers
         public async Task<ActionResult<List<AssignmentReportDto>>> GetReport([FromQuery] GetAssignmentReportQuery query)
         {
             var result = await _mediator.Send(query);
-            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
-            return Ok(result.Data);
+            return HandleResult(result);
         }
 
         /// <summary>
@@ -122,8 +119,7 @@ namespace LeadAssignment.API.Controllers
         {
             var query = new GetCustomerAssignmentHistoryQuery { CustomerId = customerId };
             var result = await _mediator.Send(query);
-            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
-            return Ok(result.Data);
+            return HandleResult(result);
         }
 
         /// <summary>
@@ -135,8 +131,7 @@ namespace LeadAssignment.API.Controllers
         {
             var query = new GetQueueStatusQuery { TrainingSystem = trainingSystem };
             var result = await _mediator.Send(query);
-            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
-            return Ok(result.Data);
+            return HandleResult(result);
         }
 
         /// <summary>
@@ -170,8 +165,7 @@ namespace LeadAssignment.API.Controllers
                 ConsultantId = _currentUserService.UserId.Value
             };
             var result = await _mediator.Send(query);
-            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
-            return Ok(result.Data);
+            return HandleResult(result);
         }
 
         /// <summary>
@@ -183,8 +177,7 @@ namespace LeadAssignment.API.Controllers
         {
             var query = new GetActiveSlaQuery { TrainingSystem = trainingSystem };
             var result = await _mediator.Send(query);
-            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
-            return Ok(result.Data);
+            return HandleResult(result);
         }
 
         /// <summary>
@@ -201,12 +194,11 @@ namespace LeadAssignment.API.Controllers
                 ConsultantId = _currentUserService.UserId.Value
             };
             var result = await _mediator.Send(query);
-            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
-            return Ok(result.Data);
+            return HandleResult(result);
         }
 
         /// <summary>
-        /// Ghi nhận bằng chứng liên hệ / Cập nhật trạng thái chăm sóc khách hàng (Dành cho Tư vấn viên)
+        /// Tạo bằng chứng liên hệ (Dành cho Tư vấn viên)
         /// </summary>
         [HttpPost("evidence")]
         public async Task<ActionResult> CreateContactEvidence([FromBody] CreateContactEvidenceCommand command)
@@ -216,8 +208,7 @@ namespace LeadAssignment.API.Controllers
 
             command.AssigneeId = _currentUserService.UserId.Value;
             var result = await _mediator.Send(command);
-            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
-            return Ok(new { message = "Ghi nhận bằng chứng liên hệ thành công" });
+            return HandleResult(result);
         }
 
         /// <summary>
@@ -228,8 +219,7 @@ namespace LeadAssignment.API.Controllers
         {
             var query = new GetCustomerCareEvidenceQuery { CustomerId = customerId };
             var result = await _mediator.Send(query);
-            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
-            return Ok(result.Data);
+            return HandleResult(result);
         }
     }
 }

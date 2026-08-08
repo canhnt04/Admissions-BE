@@ -16,6 +16,8 @@ using Shared.Common.Exceptions;
 using Auth.Domain.Errors;
 using System.Security.Claims;
 
+using Shared.Common.Controllers;
+
 namespace Auth.API.Controllers
 {
     /// <summary>
@@ -23,7 +25,7 @@ namespace Auth.API.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController : ControllerBase
+    public class AuthController : BaseApiController
     {
         private readonly IMediator _mediator;
 
@@ -37,10 +39,10 @@ namespace Auth.API.Controllers
         /// </summary>
         [HttpPost("register")]
         [AllowAnonymous]
-        public async Task<ActionResult<RegisterResponse>> Register(RegisterCommand command)
+        public async Task<ActionResult> Register(RegisterCommand command)
         {
             var response = await _mediator.Send(command);
-            return Ok(response);
+            return HandleResult(response);
         }
 
         /// <summary>
@@ -48,10 +50,10 @@ namespace Auth.API.Controllers
         /// </summary>
         [HttpPost("login")]
         [AllowAnonymous]
-        public async Task<ActionResult<LoginResponse>> Login(LoginCommand command)
+        public async Task<ActionResult> Login(LoginCommand command)
         {
             var response = await _mediator.Send(command);
-            return Ok(response);
+            return HandleResult(response);
         }
 
         /// <summary>
@@ -59,10 +61,10 @@ namespace Auth.API.Controllers
         /// </summary>
         [HttpGet("teams")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<List<TeamDto>>> GetTeams()
+        public async Task<ActionResult> GetTeams()
         {
             var response = await _mediator.Send(new GetTeamsQuery());
-            return Ok(response);
+            return HandleResult(response);
         }
 
         /// <summary>
@@ -70,10 +72,10 @@ namespace Auth.API.Controllers
         /// </summary>
         [HttpPost("assign-user")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<AssignUserResponse>> AssignRole(AssignUserCommand command)
+        public async Task<ActionResult> AssignRole(AssignUserCommand command)
         {
             var response = await _mediator.Send(command);
-            return Ok(response);
+            return HandleResult(response);
         }
 
         /// <summary>
@@ -81,45 +83,45 @@ namespace Auth.API.Controllers
         /// </summary>
         [HttpPost("remove-team")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<RemoveUserTeamResponse>> RemoveTeam(RemoveUserTeamCommand command)
+        public async Task<ActionResult> RemoveTeam(RemoveUserTeamCommand command)
         {
             var response = await _mediator.Send(command);
-            return Ok(response);
+            return HandleResult(response);
         }
 
         /// <summary>
         /// Lấy thông tin cá nhân của người dùng đang đăng nhập 
         /// </summary>
         [HttpGet("profile")]
-        public async Task<ActionResult<UserDto>> GetProfile()
+        public async Task<ActionResult> GetProfile()
         {
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-                throw new UnauthorizedException(AuthErrors.InvalidCredentials);
+                return Unauthorized();
 
             var query = new GetProfileQuery { UserId = userId };
             var response = await _mediator.Send(query);
-            return Ok(response);
+            return HandleResult(response);
         }
 
         /// <summary>
         /// Lấy danh sách toàn bộ người dùng
         /// </summary>
         [HttpGet("users")]
-        public async Task<ActionResult<List<UserDto>>> GetUsers()
+        public async Task<ActionResult> GetUsers()
         {
             var response = await _mediator.Send(new GetUsersQuery());
-            return Ok(response);
+            return HandleResult(response);
         }
 
         /// <summary>
         /// Lấy thông tin người dùng theo ID 
         /// </summary>
         [HttpGet("users/{id:guid}")]
-        public async Task<ActionResult<UserDto>> GetUserById(Guid id)
+        public async Task<ActionResult> GetUserById(Guid id)
         {
             var response = await _mediator.Send(new GetUserByIdQuery { UserId = id });
-            return Ok(response);
+            return HandleResult(response);
         }
     }
 }

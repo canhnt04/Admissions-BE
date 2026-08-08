@@ -6,9 +6,11 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Shared.Common.Exceptions;
 
+using Shared.Common;
+
 namespace Auth.Application.Features.Authentication.Queries.GetProfile;
 
-public class GetProfileQueryHandler : IRequestHandler<GetProfileQuery, UserDto>
+public class GetProfileQueryHandler : IRequestHandler<GetProfileQuery, Result<UserDto>>
 {
     private readonly IUserRepository _userRepository;
 
@@ -17,7 +19,7 @@ public class GetProfileQueryHandler : IRequestHandler<GetProfileQuery, UserDto>
         _userRepository = userRepository;
     }
 
-    public async Task<UserDto> Handle(GetProfileQuery request, CancellationToken cancellationToken)
+    public async Task<Result<UserDto>> Handle(GetProfileQuery request, CancellationToken cancellationToken)
     {
         var user = await _userRepository.Query()
             .AsNoTracking()
@@ -38,8 +40,8 @@ public class GetProfileQueryHandler : IRequestHandler<GetProfileQuery, UserDto>
             })
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (user == null) throw new NotFoundException(AuthErrors.UserNotFound);
+        if (user == null) return Result<UserDto>.Failure(AuthErrors.UserNotFound);
 
-        return user;
+        return Result<UserDto>.Success(user);
     }
 }

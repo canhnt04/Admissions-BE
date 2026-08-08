@@ -8,9 +8,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Shared.Common;
+
 namespace Auth.Application.Features.Authentication.Queries.GetTeams;
 
-public class GetTeamsQueryHandler : IRequestHandler<GetTeamsQuery, List<TeamDto>>
+public class GetTeamsQueryHandler : IRequestHandler<GetTeamsQuery, Result<List<TeamDto>>>
 {
     private readonly ITeamRepository _teamRepository;
 
@@ -19,7 +21,7 @@ public class GetTeamsQueryHandler : IRequestHandler<GetTeamsQuery, List<TeamDto>
         _teamRepository = teamRepository;
     }
 
-    public async Task<List<TeamDto>> Handle(GetTeamsQuery request, CancellationToken cancellationToken)
+    public async Task<Result<List<TeamDto>>> Handle(GetTeamsQuery request, CancellationToken cancellationToken)
     {
         var teams = await _teamRepository.Query()
             .AsNoTracking()
@@ -32,6 +34,6 @@ public class GetTeamsQueryHandler : IRequestHandler<GetTeamsQuery, List<TeamDto>
             })
             .ToListAsync(cancellationToken);
 
-        return teams;
+        return Result<List<TeamDto>>.Success(teams);
     }
 }

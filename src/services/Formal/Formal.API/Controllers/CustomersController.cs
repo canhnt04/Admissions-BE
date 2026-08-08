@@ -4,12 +4,13 @@ using Shared.Contracts.Enums;
 using Formal.Application.Features.Customers.Commands.CreateCustomer;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Common.Controllers;
 
 namespace Formal.API.Controllers
 {
     [ApiController]
     [Route("api/formal/[controller]")]
-    public class CustomersController : ControllerBase
+    public class CustomersController : BaseApiController
     {
         private readonly IMediator _mediator;
 
@@ -25,8 +26,7 @@ namespace Formal.API.Controllers
         public async Task<ActionResult> CreateCustomer([FromBody] CreateCustomerCommand command)
         {
             var result = await _mediator.Send(command);
-            if (result.Error != Shared.Common.Error.None) return BadRequest(result.Error);
-            return Ok(new { message = "Thêm khách hàng thành công và đã tự động giao cho Tư vấn viên", customerId = result.Data });
+            return HandleResult(result);
         }
     }
 }

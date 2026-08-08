@@ -110,11 +110,19 @@ namespace LeadAssignment.Infrastructure.Services
                     "SLA Violation: Nhân viên {AssigneeName} ({AssigneeId}) không liên hệ KH {CustomerName} ({CustomerId}). Giao lúc: {AssignedAt}",
                     assigneeName, assigneeId, sla.CustomerName, sla.CustomerId, assignedAt);
 
-                await mediator.Send(new LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolation.ReassignAfterSlaViolationCommand
+                try
                 {
-                    CustomerId = sla.CustomerId,
-                    ViolatedAssigneeId = assigneeId
-                }, cancellationToken);
+                    await mediator.Send(new LeadAssignment.Application.Assignments.Commands.ReassignAfterSlaViolation.ReassignAfterSlaViolationCommand
+                    {
+                        CustomerId = sla.CustomerId,
+                        ViolatedAssigneeId = assigneeId
+                    }, cancellationToken);
+                    _logger.LogInformation("Đã thu hồi thành công khách hàng {CustomerId}", sla.CustomerId);
+                }
+                catch (Exception ex)
+                {
+                    System.IO.File.AppendAllText("C:\\Workspace\\.NET\\Admissions\\Backend\\CrmAdmissions\\worker_error.log", "Error on CustomerId " + sla.CustomerId + ": " + ex.ToString() + Environment.NewLine);
+                }
             }
         }
 

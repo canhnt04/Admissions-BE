@@ -6,9 +6,11 @@ using Auth.Domain.Errors;
 using MediatR;
 using Shared.Common.Exceptions;
 
+using Shared.Common;
+
 namespace Auth.Application.Features.Authentication.Commands.Register;
 
-public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterResponse>
+public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result>
 {
     private readonly IUserRepository _userRepository;
     private readonly IAuthDbContext _context;
@@ -24,10 +26,10 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
         _eventPublisher = eventPublisher;
     }
 
-    public async Task<RegisterResponse> Handle(RegisterCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
         if (await _userRepository.IsUserNameTakenAsync(request.UserName, cancellationToken))
-            throw new ConflictException(AuthErrors.DuplicateUsername);
+            return Result.Failure(AuthErrors.DuplicateUsername);
 
         PasswordHelper.CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
@@ -61,9 +63,6 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new RegisterResponse
-        {
-            Message = "Đăng ký tài khoản thành công."
-        };
+        return Result.Success();
     }
 }

@@ -68,21 +68,41 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
             var fullNames = await _userGrpcClient.GetUserFullNamesAsync(assigneeIds, cancellationToken);
 
             var now = Shared.Common.Helpers.TimeHelper.VietnamNow;
-            var slaThreshold = now.AddMinutes(-30);
             
-            var result = rawSlaList.Select(s => new ActiveSlaDto
+            // Lấy SlaSettings để tính dynamic multiplier (giống SlaMonitorWorker)
+            var slaSettings = new LeadAssignment.Application.Common.Models.SlaSettings
             {
-                Id = s.Id,
-                CustomerId = s.CustomerId,
-                CustomerName = s.CustomerName,
-                TrainingSystem = s.TrainingSystem.ToString() ?? string.Empty,
-                AssigneeId = s.AssigneeId,
-                AssigneeName = fullNames.TryGetValue(s.AssigneeId, out var name) ? name : "User",
-                AssignedAt = s.StatusDate ?? now,
-                Deadline = (s.StatusDate ?? now).AddMinutes(30),
-                RemainingMinutes = (int)((s.StatusDate ?? now).AddMinutes(30) - now).TotalMinutes,
-                IsViolated = s.StatusDate < slaThreshold,
-            }).ToList();
+                SlaDeadlineMinutes = 30,
+                AdminSlaDeadlineMinutes = 120,
+                MaxSlaMultiplier = 4
+            }; // Tạm mock settings giống appsettings. Trong thực tế nên inject IOptions<SlaSettings>.
+
+            var result = new List<ActiveSlaDto>();
+            foreach (var s in rawSlaList)
+            {
+                var baseSlaMins = slaSettings.SlaDeadlineMinutes;
+                int currentLoad = rawSlaList.Count(x => x.AssigneeId == s.AssigneeId && x.TrainingSystem == s.TrainingSystem);
+                int multiplier = Math.Min(slaSettings.MaxSlaMultiplier, Math.Max(1, currentLoad));
+                
+                var assignedAt = s.StatusDate ?? now;
+                var deadline = assignedAt.AddMinutes(baseSlaMins * multiplier);
+
+                result.Add(new ActiveSlaDto
+                {
+                    Id = s.Id,
+                    CustomerId = s.CustomerId,
+                    CustomerName = s.CustomerName,
+                    TrainingSystem = s.TrainingSystem.ToString() ?? string.Empty,
+                    AssigneeId = s.AssigneeId,
+                    AssigneeName = fullNames.TryGetValue(s.AssigneeId, out var name) ? name : "User",
+                    AssignedAt = assignedAt,
+                    Deadline = deadline,
+                    RemainingMinutes = (int)(deadline - now).TotalMinutes,
+                    IsViolated = now >= deadline
+                });
+            }
+
+
 
             return Result<List<ActiveSlaDto>>.Success(result);
         }

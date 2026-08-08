@@ -3,9 +3,11 @@ using Auth.Domain.Errors;
 using MediatR;
 using Shared.Common.Exceptions;
 
+using Shared.Common;
+
 namespace Auth.Application.Features.Authentication.Commands.AssignUser;
 
-public class AssignUserCommandHandler : IRequestHandler<AssignUserCommand, AssignUserResponse>
+public class AssignUserCommandHandler : IRequestHandler<AssignUserCommand, Result>
 {
     private readonly IUserRepository _userRepository;
     private readonly ITeamRepository _teamRepository;
@@ -24,10 +26,10 @@ public class AssignUserCommandHandler : IRequestHandler<AssignUserCommand, Assig
         _eventPublisher = eventPublisher;
     }
 
-    public async Task<AssignUserResponse> Handle(AssignUserCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(AssignUserCommand request, CancellationToken cancellationToken)
     {
         var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
-        if (user == null) throw new NotFoundException(AuthErrors.UserNotFound);
+        if (user == null) return Result.Failure(AuthErrors.UserNotFound);
 
         if (request.Role.HasValue)
         {
@@ -37,7 +39,7 @@ public class AssignUserCommandHandler : IRequestHandler<AssignUserCommand, Assig
         if (request.TeamId.HasValue)
         {
             var team = await _teamRepository.GetByIdAsync(request.TeamId.Value, cancellationToken);
-            if (team == null) throw new NotFoundException(AuthErrors.TeamNotFound);
+            if (team == null) return Result.Failure(AuthErrors.TeamNotFound);
             
             user.TeamId = request.TeamId;
         }
@@ -57,9 +59,6 @@ public class AssignUserCommandHandler : IRequestHandler<AssignUserCommand, Assig
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new AssignUserResponse
-        {
-            Message = "Cập nhật thành công."
-        };
+        return Result.Success();
     }
 }

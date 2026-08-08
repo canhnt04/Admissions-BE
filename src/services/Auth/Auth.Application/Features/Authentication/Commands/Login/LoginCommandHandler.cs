@@ -10,9 +10,11 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
+using Shared.Common;
+
 namespace Auth.Application.Features.Authentication.Commands.Login;
 
-public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
+public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
 {
     private readonly IUserRepository _userRepository;
     private readonly IConfiguration _configuration;
@@ -23,24 +25,24 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
         _configuration = configuration;
     }
 
-    public async Task<LoginResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
+    public async Task<Result<LoginResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
         var user = await _userRepository.GetByUserNameAsync(request.UserName, cancellationToken);
 
         if (user == null || !user.IsActived)
-            throw new UnauthorizedException(AuthErrors.InvalidCredentials);
+            return Result<LoginResponse>.Failure(AuthErrors.InvalidCredentials);
 
         byte[] storedHash = Convert.FromBase64String(user.PasswordHash);
 
         if (!PasswordHelper.VerifyPasswordHash(request.Password, storedHash, user.PasswordSalt))
-            throw new UnauthorizedException(AuthErrors.InvalidCredentials);
+            return Result<LoginResponse>.Failure(AuthErrors.InvalidCredentials);
 
         string token = CreateToken(user);
 
-        return new LoginResponse
+        return Result<LoginResponse>.Success(new LoginResponse
         {
             AccessToken = token,
-        };
+        });
     }
 
     private string CreateToken(User user)

@@ -3,9 +3,11 @@ using Auth.Domain.Errors;
 using MediatR;
 using Shared.Common.Exceptions;
 
+using Shared.Common;
+
 namespace Auth.Application.Features.Authentication.Commands.RemoveUserTeam;
 
-public class RemoveUserTeamCommandHandler : IRequestHandler<RemoveUserTeamCommand, RemoveUserTeamResponse>
+public class RemoveUserTeamCommandHandler : IRequestHandler<RemoveUserTeamCommand, Result>
 {
     private readonly IUserRepository _userRepository;
     private readonly IAuthDbContext _context;
@@ -21,10 +23,10 @@ public class RemoveUserTeamCommandHandler : IRequestHandler<RemoveUserTeamComman
         _eventPublisher = eventPublisher;
     }
 
-    public async Task<RemoveUserTeamResponse> Handle(RemoveUserTeamCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(RemoveUserTeamCommand request, CancellationToken cancellationToken)
     {
         var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
-        if (user == null) throw new NotFoundException(AuthErrors.UserNotFound);
+        if (user == null) return Result.Failure(AuthErrors.UserNotFound);
 
         user.TeamId = null;
 
@@ -43,9 +45,6 @@ public class RemoveUserTeamCommandHandler : IRequestHandler<RemoveUserTeamComman
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new RemoveUserTeamResponse
-        {
-            Message = "Đã gỡ đội nhóm thành công."
-        };
+        return Result.Success();
     }
 }

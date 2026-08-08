@@ -4,9 +4,11 @@ using Auth.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
+using Shared.Common;
+
 namespace Auth.Application.Features.Authentication.Queries.GetUsers;
 
-public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, List<UserDto>>
+public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, Result<List<UserDto>>>
 {
     private readonly IUserRepository _userRepository;
 
@@ -15,7 +17,7 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, List<UserDto>
         _userRepository = userRepository;
     }
 
-    public async Task<List<UserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
+    public async Task<Result<List<UserDto>>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
     {
         var users = await _userRepository.Query()
             .AsNoTracking()
@@ -34,7 +36,6 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, List<UserDto>
                 UserInternalId = u.UserInternalId
             })
             .ToListAsync(cancellationToken);
-
-        return users;
+        return Result<List<UserDto>>.Success(users);
     }
 }
