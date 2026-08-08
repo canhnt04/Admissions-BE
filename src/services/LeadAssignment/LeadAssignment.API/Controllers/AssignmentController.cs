@@ -15,7 +15,12 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Common.Controllers;
-
+using System;
+using System.ComponentModel;
+using System.Reflection;
+using System.Linq;
+using System.Collections.Generic;
+using Shared.Common;
 namespace LeadAssignment.API.Controllers
 {
     /// <summary>
@@ -220,6 +225,40 @@ namespace LeadAssignment.API.Controllers
             var query = new GetCustomerCareEvidenceQuery { CustomerId = customerId };
             var result = await _mediator.Send(query);
             return HandleResult(result);
+        }
+
+        [HttpGet("follow-status")]
+        [AllowAnonymous]
+        public IActionResult GetFollowStatuses()
+        {
+            var data = GetEnumDescriptions<FollowStatus>();
+            return HandleResult(Result<IEnumerable<object>>.Success(data));
+        }
+
+        [HttpGet("lead-status")]
+        [AllowAnonymous]
+        public IActionResult GetLeadStatuses()
+        {
+            var data = GetEnumDescriptions<LeadStatus>();
+            return HandleResult(Result<IEnumerable<object>>.Success(data));
+        }
+
+        private IEnumerable<object> GetEnumDescriptions<T>() where T : Enum
+        {
+            return Enum.GetValues(typeof(T)).Cast<T>().Select(e => new
+            {
+                value = Convert.ToInt32(e),
+                description = GetDescription(e)
+            });
+        }
+
+        private string GetDescription(Enum value)
+        {
+            var field = value.GetType().GetField(value.ToString());
+            if (field == null) return value.ToString();
+            
+            var attribute = field.GetCustomAttribute<DescriptionAttribute>();
+            return attribute == null ? value.ToString() : attribute.Description;
         }
     }
 }
