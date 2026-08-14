@@ -13,6 +13,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
     {
         public TrainingSystem? TrainingSystem { get; set; }
         public Guid? ConsultantId { get; set; }
+        public bool IncludeProcessed { get; set; }
     }
 
     public class ActiveSlaDto
@@ -33,17 +34,23 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
     {
         private readonly IAssignmentDbContext _context;
         private readonly IUserGrpcClient _userGrpcClient;
+        private readonly Microsoft.Extensions.Options.IOptions<LeadAssignment.Application.Common.Models.SlaSettings> _slaSettings;
 
-        public GetActiveSlaQueryHandler(IAssignmentDbContext context, IUserGrpcClient userGrpcClient)
+        public GetActiveSlaQueryHandler(IAssignmentDbContext context, IUserGrpcClient userGrpcClient, Microsoft.Extensions.Options.IOptions<LeadAssignment.Application.Common.Models.SlaSettings> slaSettings)
         {
             _context = context;
             _userGrpcClient = userGrpcClient;
+            _slaSettings = slaSettings;
         }
 
         public async Task<Result<List<ActiveSlaDto>>> Handle(GetActiveSlaQuery request, CancellationToken cancellationToken)
         {
-            var query = _context.CustomerCareStatuses
-                .Where(s => s.Status == null || s.Status == LeadStatus.New);
+            var query = _context.CustomerCareStatuses.AsQueryable();
+
+            if (!request.IncludeProcessed)
+            {
+                query = query.Where(s => s.Status == null || s.Status == LeadStatus.New);
+            }
 
             if (request.TrainingSystem.HasValue)
                 query = query.Where(s => s.TrainingSystem == request.TrainingSystem.Value);
@@ -69,23 +76,19 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
 
             var now = Shared.Common.Helpers.TimeHelper.VietnamNow;
             
-            // Lấy SlaSettings để tính dynamic multiplier (giống SlaMonitorWorker)
-            var slaSettings = new LeadAssignment.Application.Common.Models.SlaSettings
-            {
-                SlaDeadlineMinutes = 30,
-                AdminSlaDeadlineMinutes = 120,
-                MaxSlaMultiplier = 4
-            }; // Tạm mock settings giống appsettings. Trong thực tế nên inject IOptions<SlaSettings>.
+            var slaSettings = _slaSettings.Value;
+            var managerIds = slaSettings.Managers.Values.ToList();
+            if (slaSettings.DefaultManagerId != Guid.Empty) managerIds.Add(slaSettings.DefaultManagerId);
 
             var result = new List<ActiveSlaDto>();
             foreach (var s in rawSlaList)
             {
+                var assigneeId = s.AssigneeId ?? Guid.Empty;
+                bool isManager = managerIds.Contains(assigneeId);
                 var baseSlaMins = slaSettings.SlaDeadlineMinutes;
-                int currentLoad = rawSlaList.Count(x => x.AssigneeId == s.AssigneeId && x.TrainingSystem == s.TrainingSystem);
-                int multiplier = Math.Min(slaSettings.MaxSlaMultiplier, Math.Max(1, currentLoad));
                 
                 var assignedAt = s.StatusDate ?? now;
-                var deadline = assignedAt.AddMinutes(baseSlaMins * multiplier);
+                var deadline = isManager ? DateTime.MaxValue : assignedAt.AddMinutes(baseSlaMins);
 
                 result.Add(new ActiveSlaDto
                 {
@@ -94,11 +97,11 @@ namespace LeadAssignment.Application.Assignments.Queries.GetActiveSla
                     CustomerName = s.CustomerName,
                     TrainingSystem = s.TrainingSystem.ToString() ?? string.Empty,
                     AssigneeId = s.AssigneeId ?? Guid.Empty,
-                    AssigneeName = s.AssigneeId.HasValue && userInfos.TryGetValue(s.AssigneeId.Value, out var info) ? info.FullName : "User",
+                    AssigneeName = s.AssigneeId.HasValue && userInfos.TryGetValue(s.AssigneeId.Value, out var info) && !string.IsNullOrEmpty(info.FullName) ? info.FullName : s.AssigneeId.HasValue ? $"Nhân viên ({s.AssigneeId.Value.ToString().Substring(0, 8)})" : "Chưa giao",
                     AssignedAt = assignedAt,
                     Deadline = deadline,
-                    RemainingMinutes = (int)(deadline - now).TotalMinutes,
-                    IsViolated = now >= deadline
+                    RemainingMinutes = isManager ? 999999 : (int)(deadline - now).TotalMinutes,
+                    IsViolated = !isManager && now >= deadline
                 });
             }
 

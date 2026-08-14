@@ -44,7 +44,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetCustomerAssignmentHi
             {
                 Id = h.Id,
                 AssigneeId = h.AssigneeId,
-                AssigneeName = userInfos.TryGetValue(h.AssigneeId, out var info) ? info.FullName : string.Empty,
+                AssigneeName = userInfos.TryGetValue(h.AssigneeId, out var info) && !string.IsNullOrEmpty(info.FullName) ? info.FullName : $"Nhân viên ({h.AssigneeId.ToString().Substring(0, 8)})",
                 AssignedById = h.AssignedById,
                 AssignmentDate = h.AssignmentDate
             }).ToList();

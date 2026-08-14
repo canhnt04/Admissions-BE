@@ -34,34 +34,71 @@ namespace LeadAssignment.Application.Assignments.Queries.GetAssignmentReport
             if (request.ToDate.HasValue)
                 query = query.Where(x => x.StatusDate <= request.ToDate.Value);
 
-            // TODO: Fetch from config if needed. Using 30 mins as default
-            var slaThreshold = Shared.Common.Helpers.TimeHelper.VietnamNow.AddMinutes(-30);
-
-            var grouped = await query
-                .GroupBy(x => x.AssigneeId)
-                .Select(g => new
+            var rawList = await query
+                .Select(x => new
                 {
-                    ConsultantId = g.Key!.Value,
-                    TotalAssigned = g.Count(),
-                    SlaFulfilled = g.Count(x => x.Status != LeadStatus.New),
-                    SlaViolated = g.Count(x => x.Status == LeadStatus.New && x.StatusDate < slaThreshold),
-                    Pending = g.Count(x => x.Status == LeadStatus.New && x.StatusDate >= slaThreshold)
+                    AssigneeId = x.AssigneeId!.Value,
+                    x.Status,
+                    x.StatusDate,
+                    x.TrainingSystem
                 })
                 .ToListAsync(cancellationToken);
 
+            var now = Shared.Common.Helpers.TimeHelper.VietnamNow;
+            var slaSettings = new LeadAssignment.Application.Common.Models.SlaSettings
+            {
+                SlaDeadlineMinutes = 30,
+                AdminSlaDeadlineMinutes = 120,
+                MaxSlaMultiplier = 4
+            };
+
+            var grouped = rawList.GroupBy(x => x.AssigneeId).ToList();
+
             // Lấy tên tư vấn viên qua gRPC
-            var consultantIds = grouped.Select(g => g.ConsultantId).Distinct().ToList();
+            var consultantIds = grouped.Select(g => g.Key).Distinct().ToList();
             var userInfos = await _userGrpcClient.GetUsersAsync(consultantIds, cancellationToken);
 
-            var report = grouped.Select(g => new AssignmentReportDto
+            var report = new List<AssignmentReportDto>();
+
+            foreach (var g in grouped)
             {
-                ConsultantId = g.ConsultantId,
-                ConsultantName = userInfos.TryGetValue(g.ConsultantId, out var info) ? info.FullName : string.Empty,
-                TotalAssigned = g.TotalAssigned,
-                SlaFulfilled = g.SlaFulfilled,
-                SlaViolated = g.SlaViolated,
-                Pending = g.Pending
-            }).ToList();
+                var consultantId = g.Key;
+                var assignedCount = g.Count();
+                var fulfilledCount = g.Count(x => x.Status != LeadStatus.New);
+                
+                int violatedCount = 0;
+                int pendingCount = 0;
+
+                var activeLeads = g.Where(x => x.Status == LeadStatus.New).ToList();
+                foreach (var s in activeLeads)
+                {
+                    var baseSlaMins = slaSettings.SlaDeadlineMinutes;
+                    int currentLoad = rawList.Count(x => x.AssigneeId == consultantId && x.TrainingSystem == s.TrainingSystem && x.Status == LeadStatus.New);
+                    int multiplier = Math.Min(slaSettings.MaxSlaMultiplier, Math.Max(1, currentLoad));
+                    
+                    var assignedAt = s.StatusDate ?? now;
+                    var deadline = assignedAt.AddMinutes(baseSlaMins * multiplier);
+
+                    if (deadline < now)
+                    {
+                        violatedCount++;
+                    }
+                    else
+                    {
+                        pendingCount++;
+                    }
+                }
+
+                report.Add(new AssignmentReportDto
+                {
+                    ConsultantId = consultantId,
+                    ConsultantName = userInfos.TryGetValue(consultantId, out var info) ? info.FullName : string.Empty,
+                    TotalAssigned = assignedCount,
+                    SlaFulfilled = fulfilledCount,
+                    SlaViolated = violatedCount,
+                    Pending = pendingCount
+                });
+            }
 
             return Result<List<AssignmentReportDto>>.Success(report);
         }

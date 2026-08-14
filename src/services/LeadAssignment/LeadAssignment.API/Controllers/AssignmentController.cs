@@ -9,6 +9,7 @@ using LeadAssignment.Application.Assignments.Queries.GetActiveSla;
 using LeadAssignment.Application.Assignments.Queries.GetAssignmentReport;
 using LeadAssignment.Application.Assignments.Queries.GetCustomerCareEvidence;
 using LeadAssignment.Application.Assignments.Queries.GetCustomerAssignmentHistory;
+using LeadAssignment.Application.Assignments.Queries.GetDashboardSummary;
 using LeadAssignment.Application.Assignments.Queries.GetQueueStatus;
 using Shared.Common.Interfaces;
 using MediatR;
@@ -174,13 +175,26 @@ namespace LeadAssignment.API.Controllers
         }
 
         /// <summary>
+        /// Xem thống kê tổng quan dashboard (Admin)
+        /// </summary>
+        [HttpGet("dashboard-summary")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(DashboardSummaryDto), (int)System.Net.HttpStatusCode.OK)]
+        public async Task<ActionResult<DashboardSummaryDto>> GetDashboardSummary()
+        {
+            var query = new GetDashboardSummaryQuery();
+            var result = await _mediator.Send(query);
+            return HandleResult(result);
+        }
+
+        /// <summary>
         /// Xem danh sách SLA đang active toàn hệ thống (Admin)
         /// </summary>
         [HttpGet("sla/active")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<List<ActiveSlaDto>>> GetActiveSla([FromQuery] TrainingSystem? trainingSystem)
+        public async Task<ActionResult<List<ActiveSlaDto>>> GetActiveSla([FromQuery] TrainingSystem? trainingSystem, [FromQuery] bool includeProcessed = false)
         {
-            var query = new GetActiveSlaQuery { TrainingSystem = trainingSystem };
+            var query = new GetActiveSlaQuery { TrainingSystem = trainingSystem, IncludeProcessed = includeProcessed };
             var result = await _mediator.Send(query);
             return HandleResult(result);
         }

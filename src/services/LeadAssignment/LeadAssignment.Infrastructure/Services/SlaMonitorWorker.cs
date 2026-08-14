@@ -78,14 +78,11 @@ namespace LeadAssignment.Infrastructure.Services
             {
                 var assigneeId = sla.AssigneeId!.Value;
                 bool isManager = managerIds.Contains(assigneeId);
-                var baseSlaMins = isManager ? slaSettings.AdminSlaDeadlineMinutes : slaSettings.SlaDeadlineMinutes;
+                var baseSlaMins = slaSettings.SlaDeadlineMinutes;
                 
-                int currentLoad = await customerCareStatusRepository.Query()
-                    .CountAsync(c => c.AssigneeId == assigneeId && c.Status == LeadStatus.New && c.TrainingSystem == sla.TrainingSystem, cancellationToken);
-                    
-                int multiplier = Math.Min(slaSettings.MaxSlaMultiplier, Math.Max(1, currentLoad));
+                if (isManager) continue;
                 
-                var deadline = (sla.StatusDate ?? now).AddMinutes(baseSlaMins * multiplier);
+                var deadline = (sla.StatusDate ?? now).AddMinutes(baseSlaMins);
                 
                 if (now >= deadline)
                 {
@@ -121,7 +118,7 @@ namespace LeadAssignment.Infrastructure.Services
                 }
                 catch (Exception ex)
                 {
-                    System.IO.File.AppendAllText("C:\\Workspace\\.NET\\Admissions\\Backend\\CrmAdmissions\\worker_error.log", "Error on CustomerId " + sla.CustomerId + ": " + ex.ToString() + Environment.NewLine);
+                    _logger.LogError(ex, "Lỗi khi thu hồi khách hàng {CustomerId}", sla.CustomerId);
                 }
             }
         }
@@ -151,14 +148,11 @@ namespace LeadAssignment.Infrastructure.Services
             {
                 var assigneeId = sla.AssigneeId!.Value;
                 bool isManager = managerIds.Contains(assigneeId);
-                var baseSlaMins = isManager ? slaSettings.AdminSlaDeadlineMinutes : slaSettings.SlaDeadlineMinutes;
+                var baseSlaMins = slaSettings.SlaDeadlineMinutes;
                 
-                int currentLoad = await customerCareStatusRepository.Query()
-                    .CountAsync(c => c.AssigneeId == assigneeId && c.Status == LeadStatus.New && c.TrainingSystem == sla.TrainingSystem, cancellationToken);
-                    
-                int multiplier = Math.Min(slaSettings.MaxSlaMultiplier, Math.Max(1, currentLoad));
+                if (isManager) continue;
                 
-                var deadline = (sla.StatusDate ?? now).AddMinutes(baseSlaMins * multiplier);
+                var deadline = (sla.StatusDate ?? now).AddMinutes(baseSlaMins);
                 
                 if (now >= deadline.AddMinutes(-5) && now < deadline)
                 {

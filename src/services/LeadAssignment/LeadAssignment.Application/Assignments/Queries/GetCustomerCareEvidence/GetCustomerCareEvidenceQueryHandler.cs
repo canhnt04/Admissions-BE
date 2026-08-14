@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using LeadAssignment.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Customer.Domain.Enums;
 
 namespace LeadAssignment.Application.Assignments.Queries.GetCustomerCareEvidence
 {
@@ -21,7 +22,7 @@ namespace LeadAssignment.Application.Assignments.Queries.GetCustomerCareEvidence
         public async Task<Result<List<CustomerCareEvidenceDto>>> Handle(GetCustomerCareEvidenceQuery request, CancellationToken cancellationToken)
         {
             var statuses = await _context.CustomerCareStatuses
-                .Where(x => x.CustomerId == request.CustomerId)
+                .Where(x => x.CustomerId == request.CustomerId && x.Status != LeadStatus.New)
                 .OrderByDescending(x => x.StatusDate)
                 .Select(x => new CustomerCareEvidenceDto
                 {

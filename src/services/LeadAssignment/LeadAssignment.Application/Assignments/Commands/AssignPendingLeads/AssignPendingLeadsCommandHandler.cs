@@ -90,7 +90,7 @@ namespace LeadAssignment.Application.Assignments.Commands.AssignPendingLeads
                     .ToListAsync(cancellationToken);
 
                 var activeLogs = rawLogs
-                    .GroupBy(a => a.UserId)
+                    .GroupBy(a => a.RecordId)
                     .Select(g => g.OrderByDescending(x => x.CreationDate).FirstOrDefault())
                     .ToList();
 
@@ -99,7 +99,7 @@ namespace LeadAssignment.Application.Assignments.Commands.AssignPendingLeads
                            l.Detail != null && 
                            l.Detail.ToLower().Contains("check_in") && 
                            l.Detail.ToLower().Contains($"nhánh {request.TrainingSystem.ToString().ToLower()}"))
-                    .Select(l => l.UserId)
+                    .Select(l => l.RecordId)
                     .ToList();
 
                 if (!activeConsultantIds.Any())
@@ -145,13 +145,29 @@ namespace LeadAssignment.Application.Assignments.Commands.AssignPendingLeads
 
                 int assignedCount = 0;
 
+                var pendingLeadIds = pendingLeads.Select(l => l.CustomerId).ToList();
+                var allPastAssignments = await _customerAssignmentHistoryRepository.Query()
+                    .Where(h => pendingLeadIds.Contains(h.CustomerId))
+                    .ToListAsync(cancellationToken);
+
                 foreach (var lead in pendingLeads)
                 {
-                    // Lọc lại những người chưa bị đầy
-                    var availableQueues = queueStates.Where(q => q.CurrentLoad < 10).ToList();
-                    if (!availableQueues.Any())
+                    var notFullQueues = queueStates.Where(q => q.CurrentLoad < 10).ToList();
+                    if (!notFullQueues.Any())
                     {
                         break; // Hết chỗ trống
+                    }
+
+                    var pastAssigneeIds = allPastAssignments
+                        .Where(h => h.CustomerId == lead.CustomerId)
+                        .Select(h => h.AssigneeId)
+                        .Distinct()
+                        .ToList();
+
+                    var availableQueues = notFullQueues.Where(q => !pastAssigneeIds.Contains(q.ConsultantId)).ToList();
+                    if (!availableQueues.Any())
+                    {
+                        continue; // Bỏ qua lead này nếu không có ai hợp lệ, thử lead tiếp theo
                     }
 
                     // Chọn người có LastAssignedAt cũ nhất
@@ -164,8 +180,7 @@ namespace LeadAssignment.Application.Assignments.Commands.AssignPendingLeads
                         ? i.Email
                         : $"{selectedQueue.ConsultantId}@system.local";
                     
-                    int multiplier = Math.Min(_slaSettings.Value.MaxSlaMultiplier, Math.Max(1, selectedQueue.CurrentLoad + 1));
-                    var dynamicSlaMinutes = _slaSettings.Value.SlaDeadlineMinutes * multiplier;
+                    var dynamicSlaMinutes = _slaSettings.Value.SlaDeadlineMinutes;
                     var deadline = now.AddMinutes(dynamicSlaMinutes);
 
                     // Cập nhật trạng thái lead
